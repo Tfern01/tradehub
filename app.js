@@ -64,12 +64,50 @@ function nav(view) {
   $('#view-' + view).classList.add('active');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === view));
   window.scrollTo(0, 0);
-  if (view === 'browse') renderBrowse();
+  if (view === 'home') renderHome();
+  if (view === 'discover') renderBrowse();
   if (view === 'trades') renderTrades();
   if (view === 'messages') renderMessages();
   if (view === 'profile') renderProfile();
 }
 $$('[data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+
+// ---------- HOME ----------
+// Personalized hub: your activity, pending offers, unread messages,
+// nearby items, and your listings. Discover is the full catalog.
+function renderHome() {
+  const mine = state.items.filter(i => i.owner === ME.name);
+  const nearby = state.items.filter(i => i.owner !== ME.name).slice(0, 4);
+  const pending = state.offers.filter(o => o.status === 'Pending');
+  const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
+  const offerRow = o => {
+    const theirItem = itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
+    return `<div class="home-offer" data-offer="${o.id}">
+      ${theirItem ? `<img src="${esc(theirItem.image)}" alt="">` : ''}
+      <div class="home-offer-text"><div class="home-offer-title">${esc(theirItem ? theirItem.title : 'Trade offer')}</div>
+      <div class="home-offer-sub">${o.direction === 'received' ? 'From ' + esc(o.from) : 'Sent to ' + esc(o.from)} · ${esc(o.date)}</div></div>
+      <span class="badge">${esc(o.status)}</span>
+    </div>`;
+  };
+  $('#homeContent').innerHTML = `
+    <div class="home-welcome"><h1>Welcome back, Alex</h1><p>Here's what's happening with your trades.</p></div>
+    <div class="home-stats">
+      <div class="home-stat" data-nav="profile"><b>${mine.length}</b><span>Your listings</span></div>
+      <div class="home-stat" data-nav="trades"><b>${pending.length}</b><span>Pending offers</span></div>
+      <div class="home-stat" data-nav="messages"><b>${unreadConvos.reduce((n, c) => n + (c.unread || 0), 0)}</b><span>Unread messages</span></div>
+    </div>
+    ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
+    ${unreadConvos.length ? `<div class="home-section"><div class="home-section-head"><h2>Unread messages</h2><button class="see-all" data-nav="messages">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${unreadConvos.map(c => {
+      const last = c.messages[c.messages.length - 1];
+      return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
+    }).join('')}</div>` : ''}
+    <div class="home-section"><div class="home-section-head"><h2>Near you</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="grid">${nearby.map(cardHTML).join('')}</div></div>
+    ${mine.length ? `<div class="home-section"><div class="home-section-head"><h2>Your listings</h2><button class="see-all" data-nav="profile">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="grid">${mine.slice(0, 4).map(cardHTML).join('')}</div></div>` : ''}`;
+  $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+  $$('#homeContent .home-offer').forEach(el => el.addEventListener('click', () => nav('trades')));
+  $$('#homeContent .home-msg').forEach(el => el.addEventListener('click', () => { activeConvo = +el.dataset.convo; currentFolder = 'inbox'; nav('messages'); }));
+  $$('#homeContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
+}
 
 // ---------- BROWSE ----------
 function renderBrowse() {
@@ -165,7 +203,7 @@ $('#addForm').addEventListener('submit', e => {
   e.target.reset();
   toast('"' + title + '" is now listed!');
   currentCategory = 'All';
-  nav('browse');
+  nav('discover');
 });
 
 // ---------- TRADES ----------
@@ -372,4 +410,4 @@ function renderProfile() {
 
 // ---------- INIT ----------
 updateMsgBadge();
-renderBrowse();
+nav('home');

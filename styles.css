@@ -14,7 +14,9 @@
 body{font-family:var(--font);background:var(--bg-page);color:var(--text-primary);padding-bottom:96px}
 .hidden{display:none!important}
 .topbar{background:var(--bg-surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
-.topbar-inner{max-width:960px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:center}
+.topbar-inner{max-width:960px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:center;position:relative}
+.header-msg{position:absolute;right:16px;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;color:var(--text-primary);padding:6px;line-height:1}
+.header-msg .nav-badge{top:-2px;right:-2px}
 .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px}
 .logo-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;color:#fff;background:linear-gradient(135deg,#7C3AED,#155DFC)}
 .logo-icon .material-symbols-outlined{font-size:20px;color:#fff}
@@ -153,8 +155,32 @@ main{max-width:960px;margin:0 auto;padding:24px 16px}
 .bottomnav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;z-index:10;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
 .nav-btn{border:0;background:none;font:inherit;font-size:12px;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;cursor:pointer;position:relative}
 .nav-btn.active{color:var(--action)}
+.nav-center{color:var(--text-primary)}
+.nav-center-icon{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:999px;background:var(--action);color:#fff;margin-top:-24px;box-shadow:0 4px 12px rgba(21,93,252,.35)}
+.nav-center-icon .material-symbols-outlined{font-size:28px}
+.nav-center.active{color:var(--text-primary)}
 .nav-icon{font-size:24px;line-height:1}
 .nav-badge{position:absolute;top:0;right:4px;background:var(--danger);color:#fff;font-size:10px;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ---------- HOME ---------- */
+.home-welcome{margin-bottom:20px}
+.home-welcome h1{font-size:26px;line-height:32px;font-weight:700}
+.home-welcome p{color:var(--text-secondary);font-size:14px;margin-top:4px}
+.home-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.home-stat{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px;text-align:center;cursor:pointer}
+.home-stat b{display:block;font-size:22px;line-height:26px}
+.home-stat span{font-size:12px;color:var(--text-muted)}
+.home-section{margin-bottom:28px}
+.home-section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.home-section-head h2{font-size:18px;font-weight:700}
+.see-all{background:none;border:0;color:var(--action);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.home-offer{display:flex;gap:12px;align-items:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:12px;margin-bottom:8px;cursor:pointer}
+.home-offer img{width:48px;height:48px;object-fit:cover;border-radius:6px;background:#E5E7EB}
+.home-offer-text{flex:1;min-width:0}
+.home-offer-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-offer-sub{font-size:12px;color:var(--text-muted)}
+.home-msg{display:flex;gap:10px;align-items:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:12px;margin-bottom:8px;cursor:pointer}
+.home-msg .convo-preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal-card{background:#fff;border-radius:var(--radius-card);padding:24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto}
 .modal-card h2{margin-bottom:8px}

@@ -5,7 +5,7 @@ from fontTools.ttLib import TTFont, newTable
 from fontTools import subset
 from fontTools.ttLib.tables import otTables as ot
 
-SRC = 'material-symbols.woff2'
+SRC = '/tmp/material-symbols-full.woff2'
 OUT = 'material-symbols-embedded.woff2'
 
 ICONS = {
@@ -19,6 +19,7 @@ ICONS = {
     'star': 'glyph02072',
     'arrow_back': 'glyph01179',
     'arrow_forward': 'glyph01181',
+    'radar': 'glyph02136',
 }
 
 font = TTFont(SRC)

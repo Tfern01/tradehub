@@ -10,12 +10,18 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="logo"><span class="logo-icon"><span class="material-symbols-outlined">swap_horiz</span></span><span class="logo-word">TradeHub</span></div>
+    <button class="header-msg" data-nav="messages" aria-label="Messages"><span class="material-symbols-outlined">mail</span><span id="msgBadge" class="nav-badge hidden">0</span></button>
   </div>
 </header>
 
 <main id="app">
-  <!-- BROWSE -->
-  <section id="view-browse" class="view active">
+  <!-- HOME -->
+  <section id="view-home" class="view active">
+    <div id="homeContent"></div>
+  </section>
+
+  <!-- DISCOVER -->
+  <section id="view-discover" class="view">
     <div id="categoryChips" class="chips"></div>
     <div id="browseGrid" class="grid"></div>
     <p id="noResults" class="empty hidden">No items in this category yet.</p>
@@ -23,7 +29,7 @@
 
   <!-- ITEM DETAIL -->
   <section id="view-detail" class="view">
-    <button class="back-btn" data-nav="browse"><span class="material-symbols-outlined icon-inline">arrow_back</span> Back to Browse</button>
+    <button class="back-btn" data-nav="discover"><span class="material-symbols-outlined icon-inline">arrow_back</span> Back to Discover</button>
     <div id="detailContent"></div>
   </section>
 
@@ -56,7 +62,7 @@
         </label>
       </div>
       <div class="form-actions">
-        <button type="button" class="btn btn-ghost" data-nav="browse">Cancel</button>
+        <button type="button" class="btn btn-ghost" data-nav="discover">Cancel</button>
         <button type="submit" class="btn btn-primary">Add Item</button>
       </div>
     </form>
@@ -106,10 +112,10 @@
 <div id="toast" class="toast hidden"></div>
 
 <nav class="bottomnav">
-  <button class="nav-btn active" data-nav="browse"><span class="material-symbols-outlined nav-icon">home</span><span>Browse</span></button>
-  <button class="nav-btn" data-nav="add"><span class="material-symbols-outlined nav-icon">add</span><span>Add Item</span></button>
+  <button class="nav-btn active" data-nav="home"><span class="material-symbols-outlined nav-icon">home</span><span>Home</span></button>
+  <button class="nav-btn" data-nav="discover"><span class="material-symbols-outlined nav-icon">radar</span><span>Discover</span></button>
+  <button class="nav-btn nav-center" data-nav="add"><span class="nav-center-icon"><span class="material-symbols-outlined">add</span></span><span>List Item</span></button>
   <button class="nav-btn" data-nav="trades"><span class="material-symbols-outlined nav-icon">swap_horiz</span><span>Trades</span></button>
-  <button class="nav-btn" data-nav="messages"><span class="material-symbols-outlined nav-icon">mail</span><span>Messages</span><span id="msgBadge" class="nav-badge hidden">0</span></button>
   <button class="nav-btn" data-nav="profile"><span class="material-symbols-outlined nav-icon">person</span><span>Profile</span></button>
 </nav>
 
