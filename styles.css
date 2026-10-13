@@ -86,9 +86,20 @@ main{max-width:960px;margin:0 auto;padding:24px 16px}
 .side-label{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px}
 .offer-msg{font-size:14px;color:var(--text-secondary);line-height:20px;margin-bottom:14px}
 .offer-actions{display:flex;gap:10px}
-.messages-layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
-@media(max-width:700px){.messages-layout{grid-template-columns:1fr}}
-@media(max-width:700px){.messages-layout.thread-open .convo-list{display:none}}
+.messages-layout{display:grid;grid-template-columns:180px 320px 1fr;gap:16px;align-items:start}
+@media(max-width:980px){.messages-layout{grid-template-columns:1fr}}
+@media(max-width:700px){.messages-layout.thread-open .convo-list,.messages-layout.thread-open .folder-list{display:none}}
+.folder-list{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:8px;overflow:hidden}
+@media(max-width:980px){.folder-list{display:flex;gap:6px;padding:8px;overflow-x:auto}}
+.folder{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:0;background:none;font:inherit;font-size:14px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--text-secondary)}
+@media(max-width:980px){.folder{width:auto;white-space:nowrap}}
+.folder.active{background:var(--bg-input);color:var(--text-primary);font-weight:600}
+.folder-count{font-size:12px;color:var(--text-muted)}
+.folder.active .folder-count{color:var(--text-primary)}
+.thread-actions{display:flex;gap:6px;margin-left:auto}
+.thread-action{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-secondary)}
+.thread-action.danger{color:var(--danger);border-color:#FECACA}
+.thread-trashed-note{text-align:center;font-size:13px;color:var(--text-muted);padding:14px;border-top:1px solid var(--border)}
 .convo-list{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden}
 .convo{display:flex;gap:12px;padding:14px;cursor:pointer;border-bottom:1px solid var(--border-subtle);align-items:flex-start;position:relative}
 .convo:last-child{border-bottom:0}

@@ -1,5 +1,5 @@
 // TradeHub live preview — demo data, saved in the browser (localStorage).
-const KEY = 'tradehub-state-v2';
+const KEY = 'tradehub-state-v3';
 const ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, CA', since: 'January 2024', rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.', initials: 'AM', color: '#DBEAFE', text: '#155DFC' };
 
 const SEED = {
@@ -18,14 +18,19 @@ const SEED = {
     { id: 2, from: 'James Wilson', date: '3/9/2026', status: 'Pending', direction: 'received', theirItemId: 6, myItemId: 8, message: 'Hey Alex, that Bluetooth speaker would be perfect for my workshop. I can offer my leather messenger bag — barely used!' },
   ],
   conversations: [
-    { id: 1, with: 'Sarah Chen', initials: 'SC', itemId: 2, unread: 1, messages: [
+    { id: 1, with: 'Sarah Chen', initials: 'SC', itemId: 2, folder: 'inbox', unread: 1, messages: [
       { from: 'them', text: 'Hi! I love your mechanical keyboard. Would you be interested in trading?', time: '07:00 AM' },
       { from: 'me', text: "Thanks for reaching out! That's a beautiful camera.", time: '07:15 AM' },
       { from: 'them', text: 'No problem! I can also throw in the original leather case.', time: '07:30 AM' },
     ]},
-    { id: 2, with: 'James Wilson', initials: 'JW', itemId: 8, unread: 0, messages: [
+    { id: 2, with: 'James Wilson', initials: 'JW', itemId: 8, folder: 'inbox', unread: 0, messages: [
       { from: 'them', text: 'That sounds interesting! Can you send me more photos?', time: '06:45 AM' },
       { from: 'me', text: 'Sure, I will send some over tonight.', time: '07:05 AM' },
+    ]},
+    { id: 3, with: 'Emma Thompson', initials: 'ET', itemId: 4, folder: 'sent', unread: 0, messages: [
+      { from: 'me', text: 'Hi Emma! Is the camping tent still available? Would love to trade for it.', time: '09:12 AM' },
+      { from: 'them', text: 'Hey Alex! Yes, it is still available. What did you have in mind?', time: '09:40 AM' },
+      { from: 'me', text: 'I have a Bluetooth speaker in Like New condition — interested?', time: '10:02 AM' },
     ]},
   ],
 };
@@ -39,6 +44,7 @@ let currentCategory = 'All';
 let currentSearch = '';
 let activeTab = 'received';
 let activeConvo = null;
+let currentFolder = 'inbox';
 let tradeTargetId = null;
 let tradeSelectedMine = null;
 
@@ -223,7 +229,28 @@ function renderMessages() {
   updateMsgBadge();
   const layout = $('.messages-layout');
   if (layout) layout.classList.toggle('thread-open', activeConvo !== null);
-  $('#conversationList').innerHTML = state.conversations.map(c => {
+  // Folder sidebar (Inbox / Sent / Unread / Trash).
+  const inboxN = state.conversations.filter(c => c.folder === 'inbox').length;
+  const sentN = state.conversations.filter(c => c.folder === 'sent').length;
+  const unreadN = state.conversations.filter(c => c.folder === 'inbox' && c.unread).length;
+  const trashN = state.conversations.filter(c => c.folder === 'trash').length;
+  const folders = [
+    ['inbox', 'Inbox', inboxN], ['sent', 'Sent', sentN],
+    ['unread', 'Unread', unreadN], ['trash', 'Trash', trashN],
+  ];
+  $('#folderList').innerHTML = folders.map(([key, label, n]) =>
+    `<button class="folder ${currentFolder === key ? 'active' : ''}" data-folder="${key}"><span>${label}</span><span class="folder-count">${n}</span></button>`).join('');
+  $$('#folderList .folder').forEach(f => f.addEventListener('click', () => {
+    currentFolder = f.dataset.folder;
+    activeConvo = null;
+    renderMessages();
+  }));
+  const visible = state.conversations.filter(c =>
+    currentFolder === 'inbox' ? c.folder === 'inbox' :
+    currentFolder === 'sent' ? c.folder === 'sent' :
+    currentFolder === 'unread' ? (c.folder === 'inbox' && c.unread) :
+    c.folder === 'trash');
+  $('#conversationList').innerHTML = visible.length ? visible.map(c => {
     const last = c.messages[c.messages.length - 1];
     const item = itemById(c.itemId);
     return `<div class="convo ${activeConvo === c.id ? 'active' : ''} ${c.unread ? 'unread' : ''}" data-id="${c.id}">
@@ -235,16 +262,17 @@ function renderMessages() {
       </div>
       ${c.unread ? `<span class="unread-badge">${c.unread}</span>` : ''}
     </div>`;
-  }).join('');
+  }).join('') : `<p class="empty">Nothing in ${currentFolder}.</p>`;
   $$('#conversationList .convo').forEach(cv => cv.addEventListener('click', () => {
     activeConvo = +cv.dataset.id;
     const c = state.conversations.find(x => x.id === activeConvo);
-    if (c && c.unread) { c.unread = 0; save(); }
+    if (c && c.unread && c.folder !== 'trash') { c.unread = 0; save(); }
     renderMessages();
   }));
   const convo = state.conversations.find(c => c.id === activeConvo);
   if (!convo) { $('#threadView').innerHTML = '<p class="empty">Select a conversation to start messaging.</p>'; return; }
   const item = itemById(convo.itemId);
+  const inTrash = convo.folder === 'trash';
   const bubblesHTML = convo.messages.map(m => {
     const me = m.from === 'me';
     return `<div class="bubble-row ${me ? 'me' : 'them'}">
@@ -256,7 +284,12 @@ function renderMessages() {
     <div class="thread-head">
       <button class="thread-back" id="threadBack">←</button>
       <span class="avatar">${esc(convo.initials)}</span>
-      <div><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
+      <div style="flex:1"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
+      <div class="thread-actions">
+        ${inTrash
+          ? `<button class="thread-action" id="restoreBtn">Restore</button><button class="thread-action danger" id="deleteForeverBtn">Delete forever</button>`
+          : `<button class="thread-action" id="markUnreadBtn">Mark unread</button><button class="thread-action" id="trashBtn">Delete</button>`}
+      </div>
     </div>
     ${item ? `<div class="thread-item-card" data-item="${item.id}">
       <img src="${esc(item.image)}" alt="">
@@ -267,14 +300,42 @@ function renderMessages() {
       <div class="date-divider"><span>Today</span></div>
       ${bubblesHTML}
     </div>
-    <form class="thread-input" id="msgForm"><input id="msgInput" placeholder="Type a message..." autocomplete="off"><button type="submit">Send</button></form>`;
+    ${inTrash
+      ? `<p class="thread-trashed-note">This conversation is in Trash. Restore it to reply.</p>`
+      : `<form class="thread-input" id="msgForm"><input id="msgInput" placeholder="Type a message..." autocomplete="off"><button type="submit">Send</button></form>`}`;
   const backBtn = $('#threadBack');
   if (backBtn) backBtn.addEventListener('click', () => { activeConvo = null; renderMessages(); });
+  const markUnread = $('#markUnreadBtn');
+  if (markUnread) markUnread.addEventListener('click', () => {
+    convo.unread = 1; convo.folder = 'inbox'; save();
+    toast('Marked as unread.');
+    currentFolder = 'inbox'; activeConvo = null; renderMessages();
+  });
+  const trashBtn = $('#trashBtn');
+  if (trashBtn) trashBtn.addEventListener('click', () => {
+    convo.folder = 'trash'; convo.unread = 0; save();
+    toast('Conversation moved to Trash.');
+    currentFolder = 'trash'; activeConvo = null; renderMessages();
+  });
+  const restoreBtn = $('#restoreBtn');
+  if (restoreBtn) restoreBtn.addEventListener('click', () => {
+    convo.folder = 'inbox'; save();
+    toast('Conversation restored to Inbox.');
+    currentFolder = 'inbox'; activeConvo = null; renderMessages();
+  });
+  const delForever = $('#deleteForeverBtn');
+  if (delForever) delForever.addEventListener('click', () => {
+    state.conversations = state.conversations.filter(x => x.id !== convo.id);
+    save();
+    toast('Conversation permanently deleted.');
+    activeConvo = null; renderMessages();
+  });
   const itemCard = $('#threadView .thread-item-card');
   if (itemCard) itemCard.addEventListener('click', () => openDetail(+itemCard.dataset.item));
   const box = $('#threadMsgs');
   box.scrollTop = box.scrollHeight;
-  $('#msgForm').addEventListener('submit', e => {
+  const msgForm = $('#msgForm');
+  if (msgForm) msgForm.addEventListener('submit', e => {
     e.preventDefault();
     const v = $('#msgInput').value.trim();
     if (!v) return;
