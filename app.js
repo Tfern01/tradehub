@@ -211,8 +211,8 @@ function setOffer(id, status) {
 }
 
 // ---------- MESSAGES ----------
-// eBay-inspired list (item context per conversation) + Google Chat-inspired
-// thread (grouped messages, avatar once per group, item card up top).
+// eBay-style messaging: item-led conversation list, item card pinned at the
+// top of each thread, chat bubbles, full-screen thread on mobile.
 function updateMsgBadge() {
   const total = state.conversations.reduce((n, c) => n + (c.unread || 0), 0);
   const badge = $('#msgBadge');
@@ -221,15 +221,17 @@ function updateMsgBadge() {
 }
 function renderMessages() {
   updateMsgBadge();
+  const layout = $('.messages-layout');
+  if (layout) layout.classList.toggle('thread-open', activeConvo !== null);
   $('#conversationList').innerHTML = state.conversations.map(c => {
     const last = c.messages[c.messages.length - 1];
     const item = itemById(c.itemId);
     return `<div class="convo ${activeConvo === c.id ? 'active' : ''} ${c.unread ? 'unread' : ''}" data-id="${c.id}">
-      <span class="avatar">${esc(c.initials)}</span>
+      ${item ? `<img class="convo-item-img" src="${esc(item.image)}" alt="">` : `<span class="avatar">?</span>`}
       <div class="convo-text">
         <div class="convo-top"><span class="convo-name">${esc(c.with)}</span><span class="convo-time">${last ? esc(last.time) : ''}</span></div>
+        ${item ? `<div class="convo-item-title">${esc(item.title)}</div>` : ''}
         <div class="convo-preview">${esc(last ? last.text : '')}</div>
-        ${item ? `<div class="convo-item"><img src="${esc(item.image)}" alt=""><span>Re: ${esc(item.title)}</span></div>` : ''}
       </div>
       ${c.unread ? `<span class="unread-badge">${c.unread}</span>` : ''}
     </div>`;
@@ -243,28 +245,17 @@ function renderMessages() {
   const convo = state.conversations.find(c => c.id === activeConvo);
   if (!convo) { $('#threadView').innerHTML = '<p class="empty">Select a conversation to start messaging.</p>'; return; }
   const item = itemById(convo.itemId);
-  // Group consecutive messages from the same sender (Google Chat style).
-  const groups = [];
-  for (const m of convo.messages) {
-    const last = groups[groups.length - 1];
-    if (last && last.from === m.from) last.msgs.push(m);
-    else groups.push({ from: m.from, msgs: [m] });
-  }
-  const groupsHTML = groups.map(g => {
-    const me = g.from === 'me';
-    const who = me ? 'You' : convo.with;
-    const initials = me ? 'AM' : convo.initials;
-    const firstTime = g.msgs[0].time;
-    return `<div class="msg-group">
-      <span class="avatar msg-avatar">${esc(initials)}</span>
-      <div class="msg-body">
-        <div class="msg-head"><span class="msg-name">${esc(who)}</span><span class="msg-time">${esc(firstTime)}</span></div>
-        ${g.msgs.map(m => `<div class="msg-text">${esc(m.text)}</div>`).join('')}
-      </div>
+  const bubblesHTML = convo.messages.map(m => {
+    const me = m.from === 'me';
+    return `<div class="bubble-row ${me ? 'me' : 'them'}">
+      <div class="bubble ${me ? 'me' : 'them'}">${esc(m.text)}</div>
+      <span class="bubble-time">${esc(m.time)}</span>
     </div>`;
   }).join('');
   $('#threadView').innerHTML = `
-    <div class="thread-head"><span class="avatar">${esc(convo.initials)}</span>
+    <div class="thread-head">
+      <button class="thread-back" id="threadBack">←</button>
+      <span class="avatar">${esc(convo.initials)}</span>
       <div><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
     </div>
     ${item ? `<div class="thread-item-card" data-item="${item.id}">
@@ -274,9 +265,11 @@ function renderMessages() {
     </div>` : ''}
     <div class="thread-msgs" id="threadMsgs">
       <div class="date-divider"><span>Today</span></div>
-      ${groupsHTML}
+      ${bubblesHTML}
     </div>
     <form class="thread-input" id="msgForm"><input id="msgInput" placeholder="Type a message..." autocomplete="off"><button type="submit">Send</button></form>`;
+  const backBtn = $('#threadBack');
+  if (backBtn) backBtn.addEventListener('click', () => { activeConvo = null; renderMessages(); });
   const itemCard = $('#threadView .thread-item-card');
   if (itemCard) itemCard.addEventListener('click', () => openDetail(+itemCard.dataset.item));
   const box = $('#threadMsgs');
