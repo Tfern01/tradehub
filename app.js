@@ -41,7 +41,6 @@ catch { state = structuredClone(SEED); }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
 let currentCategory = 'All';
-let currentSearch = '';
 let activeTab = 'received';
 let activeConvo = null;
 let currentFolder = 'inbox';
@@ -78,10 +77,8 @@ function renderBrowse() {
   $('#categoryChips').innerHTML = cats.map(c =>
     `<button class="chip ${c === currentCategory ? 'active' : ''}" data-cat="${c}">${c}</button>`).join('');
   $$('#categoryChips .chip').forEach(ch => ch.addEventListener('click', () => { currentCategory = ch.dataset.cat; renderBrowse(); }));
-  const q = currentSearch.trim().toLowerCase();
   const items = state.items.filter(i =>
-    (currentCategory === 'All' || i.category === currentCategory) &&
-    (!q || (i.title + ' ' + i.desc + ' ' + i.owner).toLowerCase().includes(q)));
+    (currentCategory === 'All' || i.category === currentCategory));
   $('#noResults').classList.toggle('hidden', items.length > 0);
   $('#browseGrid').innerHTML = items.map(cardHTML).join('');
   $$('#browseGrid .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
@@ -100,7 +97,6 @@ function cardHTML(i) {
     </div>
   </article>`;
 }
-$('#searchInput').addEventListener('input', e => { currentSearch = e.target.value; renderBrowse(); });
 
 // ---------- DETAIL ----------
 function openDetail(id) {
@@ -168,7 +164,7 @@ $('#addForm').addEventListener('submit', e => {
   save();
   e.target.reset();
   toast('"' + title + '" is now listed!');
-  currentCategory = 'All'; currentSearch = ''; $('#searchInput').value = '';
+  currentCategory = 'All';
   nav('browse');
 });
 
