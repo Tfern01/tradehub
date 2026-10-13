@@ -1,5 +1,5 @@
 // TradeHub live preview — demo data, saved in the browser (localStorage).
-const KEY = 'tradehub-state-v1';
+const KEY = 'tradehub-state-v2';
 const ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, CA', since: 'January 2024', rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.', initials: 'AM', color: '#DBEAFE', text: '#155DFC' };
 
 const SEED = {
@@ -18,12 +18,12 @@ const SEED = {
     { id: 2, from: 'James Wilson', date: '3/9/2026', status: 'Pending', direction: 'received', theirItemId: 6, myItemId: 8, message: 'Hey Alex, that Bluetooth speaker would be perfect for my workshop. I can offer my leather messenger bag — barely used!' },
   ],
   conversations: [
-    { id: 1, with: 'Sarah Chen', initials: 'SC', messages: [
+    { id: 1, with: 'Sarah Chen', initials: 'SC', itemId: 2, unread: 1, messages: [
       { from: 'them', text: 'Hi! I love your mechanical keyboard. Would you be interested in trading?', time: '07:00 AM' },
       { from: 'me', text: "Thanks for reaching out! That's a beautiful camera.", time: '07:15 AM' },
       { from: 'them', text: 'No problem! I can also throw in the original leather case.', time: '07:30 AM' },
     ]},
-    { id: 2, with: 'James Wilson', initials: 'JW', messages: [
+    { id: 2, with: 'James Wilson', initials: 'JW', itemId: 8, unread: 0, messages: [
       { from: 'them', text: 'That sounds interesting! Can you send me more photos?', time: '06:45 AM' },
       { from: 'me', text: 'Sure, I will send some over tonight.', time: '07:05 AM' },
     ]},
@@ -211,22 +211,74 @@ function setOffer(id, status) {
 }
 
 // ---------- MESSAGES ----------
+// eBay-inspired list (item context per conversation) + Google Chat-inspired
+// thread (grouped messages, avatar once per group, item card up top).
+function updateMsgBadge() {
+  const total = state.conversations.reduce((n, c) => n + (c.unread || 0), 0);
+  const badge = $('#msgBadge');
+  badge.textContent = total;
+  badge.classList.toggle('hidden', total === 0);
+}
 function renderMessages() {
+  updateMsgBadge();
   $('#conversationList').innerHTML = state.conversations.map(c => {
     const last = c.messages[c.messages.length - 1];
-    return `<div class="convo ${activeConvo === c.id ? 'active' : ''}" data-id="${c.id}">
+    const item = itemById(c.itemId);
+    return `<div class="convo ${activeConvo === c.id ? 'active' : ''} ${c.unread ? 'unread' : ''}" data-id="${c.id}">
       <span class="avatar">${esc(c.initials)}</span>
-      <div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div>
+      <div class="convo-text">
+        <div class="convo-top"><span class="convo-name">${esc(c.with)}</span><span class="convo-time">${last ? esc(last.time) : ''}</span></div>
+        <div class="convo-preview">${esc(last ? last.text : '')}</div>
+        ${item ? `<div class="convo-item"><img src="${esc(item.image)}" alt=""><span>Re: ${esc(item.title)}</span></div>` : ''}
+      </div>
+      ${c.unread ? `<span class="unread-badge">${c.unread}</span>` : ''}
     </div>`;
   }).join('');
-  $$('#conversationList .convo').forEach(cv => cv.addEventListener('click', () => { activeConvo = +cv.dataset.id; renderMessages(); }));
+  $$('#conversationList .convo').forEach(cv => cv.addEventListener('click', () => {
+    activeConvo = +cv.dataset.id;
+    const c = state.conversations.find(x => x.id === activeConvo);
+    if (c && c.unread) { c.unread = 0; save(); }
+    renderMessages();
+  }));
   const convo = state.conversations.find(c => c.id === activeConvo);
   if (!convo) { $('#threadView').innerHTML = '<p class="empty">Select a conversation to start messaging.</p>'; return; }
+  const item = itemById(convo.itemId);
+  // Group consecutive messages from the same sender (Google Chat style).
+  const groups = [];
+  for (const m of convo.messages) {
+    const last = groups[groups.length - 1];
+    if (last && last.from === m.from) last.msgs.push(m);
+    else groups.push({ from: m.from, msgs: [m] });
+  }
+  const groupsHTML = groups.map(g => {
+    const me = g.from === 'me';
+    const who = me ? 'You' : convo.with;
+    const initials = me ? 'AM' : convo.initials;
+    const firstTime = g.msgs[0].time;
+    return `<div class="msg-group">
+      <span class="avatar msg-avatar">${esc(initials)}</span>
+      <div class="msg-body">
+        <div class="msg-head"><span class="msg-name">${esc(who)}</span><span class="msg-time">${esc(firstTime)}</span></div>
+        ${g.msgs.map(m => `<div class="msg-text">${esc(m.text)}</div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
   $('#threadView').innerHTML = `
-    <div class="thread-head"><span class="avatar">${esc(convo.initials)}</span><div class="convo-name">${esc(convo.with)}</div></div>
-    <div class="thread-msgs" id="threadMsgs">${convo.messages.map(m =>
-      `<div class="bubble ${m.from === 'me' ? 'me' : 'them'}">${esc(m.text)}<span class="time">${esc(m.time)}</span></div>`).join('')}</div>
+    <div class="thread-head"><span class="avatar">${esc(convo.initials)}</span>
+      <div><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
+    </div>
+    ${item ? `<div class="thread-item-card" data-item="${item.id}">
+      <img src="${esc(item.image)}" alt="">
+      <div><div class="mi-title">${esc(item.title)}</div><div class="mi-sub">${esc(item.condition)} · Listed ${esc(item.listed)}</div></div>
+      <span class="view-item-link">View item →</span>
+    </div>` : ''}
+    <div class="thread-msgs" id="threadMsgs">
+      <div class="date-divider"><span>Today</span></div>
+      ${groupsHTML}
+    </div>
     <form class="thread-input" id="msgForm"><input id="msgInput" placeholder="Type a message..." autocomplete="off"><button type="submit">Send</button></form>`;
+  const itemCard = $('#threadView .thread-item-card');
+  if (itemCard) itemCard.addEventListener('click', () => openDetail(+itemCard.dataset.item));
   const box = $('#threadMsgs');
   box.scrollTop = box.scrollHeight;
   $('#msgForm').addEventListener('submit', e => {
@@ -269,4 +321,5 @@ function renderProfile() {
 }
 
 // ---------- INIT ----------
+updateMsgBadge();
 renderBrowse();
