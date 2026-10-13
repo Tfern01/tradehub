@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeHub — Peer to Peer Trading</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo"><span class="logo-icon">⇄</span><span class="logo-word">TradeHub</span></div>
+    <span class="preview-badge">Preview</span>
+  </div>
+</header>
+
+<main id="app">
+  <!-- BROWSE -->
+  <section id="view-browse" class="view active">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input id="searchInput" type="text" placeholder="Search for items...">
+    </div>
+    <div id="categoryChips" class="chips"></div>
+    <div id="browseGrid" class="grid"></div>
+    <p id="noResults" class="empty hidden">No items match your search.</p>
+  </section>
+
+  <!-- ITEM DETAIL -->
+  <section id="view-detail" class="view">
+    <button class="back-btn" data-nav="browse">← Back to Browse</button>
+    <div id="detailContent"></div>
+  </section>
+
+  <!-- ADD ITEM -->
+  <section id="view-add" class="view">
+    <h1 class="page-title">Add New Item</h1>
+    <form id="addForm" class="card form-card">
+      <label>Image URL (optional)
+        <input id="fImage" type="url" placeholder="https://example.com/image.jpg">
+      </label>
+      <label>Title *
+        <input id="fTitle" type="text" placeholder="e.g., Vintage Camera" required>
+      </label>
+      <label>Description *
+        <textarea id="fDesc" rows="3" placeholder="Describe your item in detail..." required></textarea>
+      </label>
+      <div class="form-row">
+        <label>Category *
+          <select id="fCategory" required>
+            <option value="">Select a category</option>
+            <option>Electronics</option><option>Music</option><option>Outdoor</option>
+            <option>Collectibles</option><option>Fashion</option>
+          </select>
+        </label>
+        <label>Condition *
+          <select id="fCondition" required>
+            <option value="">Select condition</option>
+            <option>Like New</option><option>Good</option><option>Fair</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" data-nav="browse">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Item</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- TRADES -->
+  <section id="view-trades" class="view">
+    <h1 class="page-title">Trade Offers</h1>
+    <div class="tabs">
+      <button class="tab active" data-tab="received">Received (<span id="receivedCount">0</span>)</button>
+      <button class="tab" data-tab="sent">Sent (<span id="sentCount">0</span>)</button>
+    </div>
+    <div id="offersList" class="offers"></div>
+  </section>
+
+  <!-- MESSAGES -->
+  <section id="view-messages" class="view">
+    <h1 class="page-title">Messages</h1>
+    <div class="messages-layout">
+      <div id="conversationList" class="convo-list"></div>
+      <div id="threadView" class="thread">
+        <p class="empty">Select a conversation to start messaging.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="view-profile" class="view">
+    <div id="profileContent"></div>
+  </section>
+</main>
+
+<!-- TRADE PROPOSAL MODAL -->
+<div id="tradeModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Propose a Trade</h2>
+    <p class="muted">Choose one of your items to offer for <strong id="tradeTargetTitle"></strong>.</p>
+    <div id="myItemsPicker" class="picker"></div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" id="tradeCancel">Cancel</button>
+      <button class="btn btn-primary" id="tradeConfirm">Send Offer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<nav class="bottomnav">
+  <button class="nav-btn active" data-nav="browse"><span class="nav-icon">⌂</span><span>Browse</span></button>
+  <button class="nav-btn" data-nav="add"><span class="nav-icon">+</span><span>Add Item</span></button>
+  <button class="nav-btn" data-nav="trades"><span class="nav-icon">⇄</span><span>Trades</span></button>
+  <button class="nav-btn" data-nav="messages"><span class="nav-icon">✉</span><span>Messages</span><span id="msgBadge" class="nav-badge hidden">0</span></button>
+  <button class="nav-btn" data-nav="profile"><span class="nav-icon">○</span><span>Profile</span></button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
