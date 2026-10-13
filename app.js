@@ -94,8 +94,8 @@ function cardHTML(i) {
       <p class="card-desc">${esc(i.desc)}</p>
       <div class="owner-row">
         <span class="avatar">${esc(i.ownerInitials)}</span>
-        <div class="owner-meta"><div class="owner-name">${esc(i.owner)}</div><div class="owner-loc">◎ ${esc(i.ownerLoc)}</div></div>
-        <span class="rating"><span class="star">★</span>${i.ownerRating}</span>
+        <div class="owner-meta"><div class="owner-name">${esc(i.owner)}</div><div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}</div></div>
+        <span class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating}</span>
       </div>
     </div>
   </article>`;
@@ -115,8 +115,8 @@ function openDetail(id) {
       <span class="avatar lg">${esc(i.ownerInitials)}</span>
       <div class="owner-meta">
         <div class="owner-name">${esc(i.owner)}</div>
-        <div class="owner-loc">◎ ${esc(i.ownerLoc)}</div>
-        <div class="rating"><span class="star">★</span>${i.ownerRating} · ${i.owner === ME.name ? state.items.filter(x => x.owner === ME.name).length : '—'} items</div>
+        <div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}</div>
+        <div class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating} · ${i.owner === ME.name ? state.items.filter(x => x.owner === ME.name).length : '—'} items</div>
       </div>
     </div>
     ${mine
@@ -282,7 +282,7 @@ function renderMessages() {
   }).join('');
   $('#threadView').innerHTML = `
     <div class="thread-head">
-      <button class="thread-back" id="threadBack">←</button>
+      <button class="thread-back" id="threadBack"><span class="material-symbols-outlined">arrow_back</span></button>
       <span class="avatar">${esc(convo.initials)}</span>
       <div style="flex:1"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
       <div class="thread-actions">
@@ -294,7 +294,7 @@ function renderMessages() {
     ${item ? `<div class="thread-item-card" data-item="${item.id}">
       <img src="${esc(item.image)}" alt="">
       <div><div class="mi-title">${esc(item.title)}</div><div class="mi-sub">${esc(item.condition)} · Listed ${esc(item.listed)}</div></div>
-      <span class="view-item-link">View item →</span>
+      <span class="view-item-link">View item <span class="material-symbols-outlined icon-inline">arrow_forward</span></span>
     </div>` : ''}
     <div class="thread-msgs" id="threadMsgs">
       <div class="date-divider"><span>Today</span></div>
@@ -359,16 +359,16 @@ function renderProfile() {
       <div style="flex:1">
         <h1>${ME.name}</h1>
         <div class="handle">${ME.handle}</div>
-        <div class="profile-meta"><span>◎ ${ME.location}</span><span>Member since ${ME.since}</span></div>
+        <div class="profile-meta"><span><span class="material-symbols-outlined icon-inline">location_on</span> ${ME.location}</span><span>Member since ${ME.since}</span></div>
         <div class="stats">
-          <div class="stat"><b>★ ${ME.rating}</b><span>Rating</span></div>
+          <div class="stat"><b><span class="material-symbols-outlined icon-star">star</span> ${ME.rating}</b><span>Rating</span></div>
           <div class="stat"><b>${ME.trades}</b><span>Trades</span></div>
           <div class="stat"><b>${mine.length}</b><span>Items</span></div>
         </div>
         <p class="bio" style="margin-top:12px">${ME.bio}</p>
       </div>
     </div>
-    <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add">+ Add New Item</button></div>
+    <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
     <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>`;
   $$('#profileContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
   $$('#profileContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
