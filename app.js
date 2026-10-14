@@ -185,7 +185,6 @@ function renderHome() {
   };
   $('#homeContent').innerHTML = `
     <div class="home-welcome"><h1>Welcome back, Alex</h1><p>Here's what's happening with your trades.</p></div>
-    <div class="promise-banner"><span class="material-symbols-outlined">swap_horiz</span><span><b>Item trades are free</b> — you keep 100%. A 5% fee applies to cash payments.</span></div>
     <div class="home-stats">
       <div class="home-stat" data-nav="profile"><b>${mine.length}</b><span>Your listings</span></div>
       <div class="home-stat" data-nav="trades"><b>${pending.length}</b><span>Pending offers</span></div>
