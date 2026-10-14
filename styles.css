@@ -36,6 +36,10 @@ main{max-width:960px;margin:0 auto;padding:24px 16px}
 .auth-divider{display:flex;align-items:center;gap:12px;color:var(--text-muted);font-size:12px;margin:20px 0}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--border-subtle)}
 .auth-demo-note{text-align:center;font-size:12px;margin-top:10px}
+.promise-line{font-size:14px;margin-top:10px}
+.promise-banner{display:flex;gap:10px;align-items:center;background:#EFF6FF;border:1px solid #DBEAFE;border-radius:var(--radius-card);padding:12px 14px;font-size:13px;margin-bottom:20px}
+.promise-note{font-size:13px;color:var(--text-secondary);margin:12px 0 0}
+.promise-small{font-size:12px;color:var(--text-muted)}
 body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .chips{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:20px;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
