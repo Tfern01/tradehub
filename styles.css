@@ -7,6 +7,9 @@
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+h1,h2,h3{text-align:center}
+.section-head h2,.home-section-head h2{flex:1}
+.detail-head h1{flex:1}
 @font-face{font-family:'Material Symbols Outlined';font-style:normal;font-weight:100 700;font-display:block;src:url('fonts/material-symbols-embedded.woff2?v=3') format('woff2')}
 .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
 .icon-inline{font-size:16px}
@@ -227,6 +230,7 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .modal-card label{display:block;font-size:14px;font-weight:500;margin-bottom:14px}
 .modal-card select,.modal-card textarea{width:100%;margin-top:8px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-input);font:inherit;font-size:14px;background:#fff}
 .trade-window{max-width:560px}
+.trade-window .form-actions .btn{flex:1}
 .trade-panes{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;margin:16px 0}
 @media(max-width:520px){.trade-panes{grid-template-columns:1fr}.trade-divider{transform:rotate(90deg);justify-self:center}}
 .trade-pane .mini-item{margin:0}

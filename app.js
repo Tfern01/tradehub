@@ -496,7 +496,6 @@ function openTradeWindow(id, step) {
     <div class="trade-divider"><span class="material-symbols-outlined">swap_horiz</span></div>
     <div class="trade-pane"><div class="side-label">They're offering</div>${theirPaneCard}</div>
   </div>`;
-  const closeBtn = `<button class="btn btn-ghost" id="twClose">Close</button>`;
   if (o.status === 'Completed') {
     const existing = state.ratings.find(r => r.offerId === o.id);
     const ratingSection = existing
@@ -505,7 +504,7 @@ function openTradeWindow(id, step) {
         <div class="rating-stars" id="ratingStars">${[1, 2, 3, 4, 5].map(n => `<button class="star-pick" data-stars="${n}"><span class="material-symbols-outlined">star</span></button>`).join('')}</div>
         <textarea id="ratingComment" rows="2" placeholder="Anything to add? (optional)"></textarea>
         <button class="btn btn-primary" id="ratingSubmit">Submit Rating</button></div>`;
-    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}${ratingSection}<div class="form-actions">${closeBtn}</div>`;
+    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}${ratingSection}`;
     let picked = 0;
     $$('#ratingStars .star-pick').forEach(b => b.addEventListener('click', () => {
       picked = +b.dataset.stars;
@@ -520,14 +519,14 @@ function openTradeWindow(id, step) {
       openTradeWindow(id);
     });
   } else if (o.status === 'Declined' || o.status === 'Cancelled') {
-    box.innerHTML = `<h2>Trade ${o.status.toLowerCase()}</h2><p class="muted">This offer is no longer active.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+    box.innerHTML = `<h2>Trade ${o.status.toLowerCase()}</h2><p class="muted">This offer is no longer active.</p>${panes}`;
   } else if (o.status === 'Awaiting confirmation') {
-    box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+    box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}`;
   } else if (step === 'confirm') {
     const feeLine = o.type === 'cash'
       ? ` A 5% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.95).toFixed(2)} of $${esc(o.cashAmount)}.`
       : '';
-    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button>${closeBtn}<button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
+    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
     $('#twBack').addEventListener('click', () => openTradeWindow(id));
     $('#twConfirm').addEventListener('click', () => {
       o.status = 'Awaiting confirmation';
@@ -545,15 +544,13 @@ function openTradeWindow(id, step) {
       }, 2500);
     });
   } else if (o.direction === 'received') {
-    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button>${closeBtn}</div>`;
+    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button></div>`;
     $('#twDecline').addEventListener('click', () => { o.status = 'Declined'; save(); toast('Offer declined.'); renderTrades(); openTradeWindow(id); });
     $('#twAccept').addEventListener('click', () => openTradeWindow(id, 'confirm'));
   } else {
-    box.innerHTML = `<h2>Offer to ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="muted" style="margin-top:12px">Waiting for ${esc(otherName)} to respond.</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twCancel">Cancel Offer</button>${closeBtn}</div>`;
+    box.innerHTML = `<h2>Offer to ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="muted" style="margin-top:12px">Waiting for ${esc(otherName)} to respond.</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twCancel">Cancel Offer</button></div>`;
     $('#twCancel').addEventListener('click', () => { o.status = 'Cancelled'; save(); toast('Offer cancelled.'); renderTrades(); openTradeWindow(id); });
   }
-  const close = $('#twClose');
-  if (close) close.addEventListener('click', closeTradeWindow);
   box.insertAdjacentHTML('afterbegin', '<button class="modal-x" id="twX" aria-label="Close">×</button>');
   $('#twX').addEventListener('click', closeTradeWindow);
   $('#tradeWindow').classList.remove('hidden');
