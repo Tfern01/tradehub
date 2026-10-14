@@ -26,6 +26,9 @@ main{max-width:960px;margin:0 auto;padding:24px 16px}
 .page-title{font-size:30px;font-weight:700;line-height:36px;margin-bottom:20px}
 .chips{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:20px;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
+.chips.compact{margin-bottom:12px}
+.radius-row{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.radius-label{font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap}
 .chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer}
 .chip.active{background:var(--dark);color:#fff;border-color:var(--dark)}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}

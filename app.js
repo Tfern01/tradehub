@@ -1,17 +1,22 @@
 // TradeHub live preview — demo data, saved in the browser (localStorage).
-const KEY = 'tradehub-state-v3';
+const KEY = 'tradehub-state-v4';
+// Demo data is localized around Alex in San Francisco so the radius
+// filter shows real results. Distances are miles from San Francisco.
 const ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, CA', since: 'January 2024', rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.', initials: 'AM', color: '#DBEAFE', text: '#155DFC' };
 
 const SEED = {
   items: [
-    { id: 1, title: 'Vintage Polaroid Camera', desc: 'Classic Polaroid SX-70 in excellent working condition. Comes with original leather case.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/polaroid/600/400', owner: 'Sarah Chen', ownerLoc: 'New York, NY', ownerRating: 4.9, ownerInitials: 'SC', listed: '3/9/2026' },
-    { id: 2, title: 'Mechanical Keyboard', desc: 'Custom mechanical keyboard with Cherry MX Blue switches. RGB backlit.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/keyboard/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', ownerRating: 4.8, ownerInitials: 'AM', listed: '3/9/2026' },
-    { id: 3, title: 'Vinyl Record Collection', desc: 'Set of 20 classic rock vinyl records from the 70s and 80s. All in great condition.', category: 'Music', condition: 'Good', image: 'https://picsum.photos/seed/vinyl/600/400', owner: 'James Wilson', ownerLoc: 'Austin, TX', ownerRating: 4.7, ownerInitials: 'JW', listed: '3/9/2026' },
-    { id: 4, title: 'Camping Tent (4-person)', desc: 'Spacious 4-person tent with rainfly. Perfect for family camping trips.', category: 'Outdoor', condition: 'Like New', image: 'https://picsum.photos/seed/tent/600/400', owner: 'Emma Thompson', ownerLoc: 'Denver, CO', ownerRating: 5.0, ownerInitials: 'ET', listed: '3/8/2026' },
-    { id: 5, title: 'Vintage Typewriter', desc: 'Beautiful Royal typewriter from the 1950s. Fully functional with original ribbon.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/typewriter/600/400', owner: 'Sarah Chen', ownerLoc: 'New York, NY', ownerRating: 4.9, ownerInitials: 'SC', listed: '3/8/2026' },
-    { id: 6, title: 'Leather Messenger Bag', desc: 'Handcrafted genuine leather messenger bag with laptop compartment.', category: 'Fashion', condition: 'Like New', image: 'https://picsum.photos/seed/bag/600/400', owner: 'James Wilson', ownerLoc: 'Austin, TX', ownerRating: 4.7, ownerInitials: 'JW', listed: '3/8/2026' },
-    { id: 7, title: 'Hiking Backpack', desc: '65L hiking backpack with rain cover. Great for multi-day treks.', category: 'Outdoor', condition: 'Good', image: 'https://picsum.photos/seed/backpack/600/400', owner: 'Emma Thompson', ownerLoc: 'Denver, CO', ownerRating: 5.0, ownerInitials: 'ET', listed: '3/7/2026' },
-    { id: 8, title: 'Bluetooth Speaker', desc: 'Portable waterproof Bluetooth speaker with 12-hour battery life.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/speaker/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', ownerRating: 4.8, ownerInitials: 'AM', listed: '3/7/2026' },
+    { id: 1, title: 'Vintage Polaroid Camera', desc: 'Classic Polaroid SX-70 in excellent working condition. Comes with original leather case.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/polaroid/600/400', owner: 'Sarah Chen', ownerLoc: 'Berkeley, CA', distance: 11, ownerRating: 4.9, ownerInitials: 'SC', listed: '3/9/2026' },
+    { id: 2, title: 'Mechanical Keyboard', desc: 'Custom mechanical keyboard with Cherry MX Blue switches. RGB backlit.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/keyboard/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', distance: 0, ownerRating: 4.8, ownerInitials: 'AM', listed: '3/9/2026' },
+    { id: 3, title: 'Vinyl Record Collection', desc: 'Set of 20 classic rock vinyl records from the 70s and 80s. All in great condition.', category: 'Music', condition: 'Good', image: 'https://picsum.photos/seed/vinyl/600/400', owner: 'James Wilson', ownerLoc: 'Oakland, CA', distance: 8, ownerRating: 4.7, ownerInitials: 'JW', listed: '3/9/2026' },
+    { id: 4, title: 'Camping Tent (4-person)', desc: 'Spacious 4-person tent with rainfly. Perfect for family camping trips.', category: 'Outdoor', condition: 'Like New', image: 'https://picsum.photos/seed/tent/600/400', owner: 'Emma Thompson', ownerLoc: 'Daly City, CA', distance: 4, ownerRating: 5.0, ownerInitials: 'ET', listed: '3/8/2026' },
+    { id: 5, title: 'Vintage Typewriter', desc: 'Beautiful Royal typewriter from the 1950s. Fully functional with original ribbon.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/typewriter/600/400', owner: 'Sarah Chen', ownerLoc: 'Berkeley, CA', distance: 11, ownerRating: 4.9, ownerInitials: 'SC', listed: '3/8/2026' },
+    { id: 6, title: 'Leather Messenger Bag', desc: 'Handcrafted genuine leather messenger bag with laptop compartment.', category: 'Fashion', condition: 'Like New', image: 'https://picsum.photos/seed/bag/600/400', owner: 'James Wilson', ownerLoc: 'Oakland, CA', distance: 8, ownerRating: 4.7, ownerInitials: 'JW', listed: '3/8/2026' },
+    { id: 7, title: 'Hiking Backpack', desc: '65L hiking backpack with rain cover. Great for multi-day treks.', category: 'Outdoor', condition: 'Good', image: 'https://picsum.photos/seed/backpack/600/400', owner: 'Emma Thompson', ownerLoc: 'Daly City, CA', distance: 4, ownerRating: 5.0, ownerInitials: 'ET', listed: '3/7/2026' },
+    { id: 8, title: 'Bluetooth Speaker', desc: 'Portable waterproof Bluetooth speaker with 12-hour battery life.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/speaker/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', distance: 0, ownerRating: 4.8, ownerInitials: 'AM', listed: '3/7/2026' },
+    { id: 9, title: 'Mountain Bike', desc: '27-speed hardtail mountain bike, recently serviced. Great for Bay Area trails.', category: 'Outdoor', condition: 'Good', image: 'https://picsum.photos/seed/bike/600/400', owner: 'David Kim', ownerLoc: 'San Jose, CA', distance: 45, ownerRating: 4.6, ownerInitials: 'DK', listed: '3/6/2026' },
+    { id: 10, title: 'Espresso Machine', desc: 'Semi-automatic espresso machine with built-in grinder. Makes a great shot.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/espresso/600/400', owner: 'Priya Patel', ownerLoc: 'Marin, CA', distance: 14, ownerRating: 4.9, ownerInitials: 'PP', listed: '3/6/2026' },
+    { id: 11, title: '35mm Film Camera', desc: 'Classic 35mm SLR with 50mm lens. Light meter works, recently serviced.', category: 'Electronics', condition: 'Good', image: 'https://picsum.photos/seed/film/600/400', owner: 'Maria Lopez', ownerLoc: 'San Francisco, CA', distance: 2, ownerRating: 4.8, ownerInitials: 'ML', listed: '3/5/2026' },
   ],
   offers: [
     { id: 1, from: 'Sarah Chen', date: '3/10/2026', status: 'Pending', direction: 'received', theirItemId: 1, myItemId: 2, message: 'Hi! I love your mechanical keyboard. Would you be interested in trading for my vintage Polaroid camera?' },
@@ -49,6 +54,7 @@ function save() {
 }
 
 let currentCategory = 'All';
+let currentRadius = 0; // 0 = any distance
 let activeTab = 'received';
 let activeConvo = null;
 let currentFolder = 'inbox';
@@ -85,7 +91,7 @@ $$('[data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset
 // nearby items, and your listings. Discover is the full catalog.
 function renderHome() {
   const mine = state.items.filter(i => i.owner === ME.name);
-  const nearby = state.items.filter(i => i.owner !== ME.name).slice(0, 4);
+  const nearby = state.items.filter(i => i.owner !== ME.name).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
   const offerRow = o => {
@@ -118,13 +124,20 @@ function renderHome() {
 }
 
 // ---------- BROWSE ----------
+// Local-first: listings sorted nearest-first, filterable by radius.
 function renderBrowse() {
   const cats = ['All', 'Electronics', 'Music', 'Outdoor', 'Collectibles', 'Fashion'];
   $('#categoryChips').innerHTML = cats.map(c =>
     `<button class="chip ${c === currentCategory ? 'active' : ''}" data-cat="${c}">${c}</button>`).join('');
   $$('#categoryChips .chip').forEach(ch => ch.addEventListener('click', () => { currentCategory = ch.dataset.cat; renderBrowse(); }));
-  const items = state.items.filter(i =>
-    (currentCategory === 'All' || i.category === currentCategory));
+  const radii = [[0, 'Any distance'], [5, 'Within 5 mi'], [10, 'Within 10 mi'], [25, 'Within 25 mi'], [50, 'Within 50 mi']];
+  $('#radiusChips').innerHTML = radii.map(([v, label]) =>
+    `<button class="chip ${v === currentRadius ? 'active' : ''}" data-radius="${v}">${label}</button>`).join('');
+  $$('#radiusChips .chip').forEach(ch => ch.addEventListener('click', () => { currentRadius = +ch.dataset.radius; renderBrowse(); }));
+  const items = state.items
+    .filter(i => (currentCategory === 'All' || i.category === currentCategory) &&
+      (currentRadius === 0 || (i.distance ?? 999) <= currentRadius))
+    .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
   $('#noResults').classList.toggle('hidden', items.length > 0);
   $('#browseGrid').innerHTML = items.map(cardHTML).join('');
   $$('#browseGrid .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
@@ -137,7 +150,7 @@ function cardHTML(i) {
       <p class="card-desc">${esc(i.desc)}</p>
       <div class="owner-row">
         <span class="avatar">${esc(i.ownerInitials)}</span>
-        <div class="owner-meta"><div class="owner-name">${esc(i.owner)}</div><div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}</div></div>
+        <div class="owner-meta"><div class="owner-name">${esc(i.owner)}</div><div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}${i.distance == null ? '' : (i.distance === 0 ? ' · Your listing' : ' · ' + esc(i.distance) + ' mi away')}</div></div>
         <span class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating}</span>
       </div>
     </div>
@@ -152,7 +165,7 @@ function openDetail(id) {
     <img class="detail-img" src="${esc(i.image)}" alt="${esc(i.title)}">
     <div class="detail-head"><h1>${esc(i.title)}</h1><span class="badge">${esc(i.condition)}</span></div>
     <p class="detail-desc">${esc(i.desc)}</p>
-    <p class="detail-meta">Category: ${esc(i.category)} &nbsp;·&nbsp; Listed ${esc(i.listed)}</p>
+    <p class="detail-meta">Category: ${esc(i.category)} &nbsp;·&nbsp; Listed ${esc(i.listed)}${i.distance == null ? '' : (i.distance === 0 ? ' &nbsp;·&nbsp; Your listing' : ' &nbsp;·&nbsp; ' + esc(i.distance) + ' mi away')}</p>
     <div class="owner-card">
       <span class="avatar lg">${esc(i.ownerInitials)}</span>
       <div class="owner-meta">
@@ -247,7 +260,7 @@ $('#addForm').addEventListener('submit', e => {
   const id = Date.now();
   state.items.unshift({ id, title, desc, category: cat, condition: cond,
     image: pendingPhoto || `https://picsum.photos/seed/${encodeURIComponent(title.toLowerCase().replace(/\s+/g, '-'))}/600/400`,
-    owner: ME.name, ownerLoc: ME.location, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
+    owner: ME.name, ownerLoc: ME.location, distance: 0, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
   save();
   e.target.reset();
   pendingPhoto = null;
