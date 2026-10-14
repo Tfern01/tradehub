@@ -48,6 +48,7 @@ if (state.offers) state.offers.forEach(o => { if (o.status === 'Accepted') o.sta
 if (!state.ratings) state.ratings = [];
 if (!state.blocked) state.blocked = [];
 if (!state.reports) state.reports = [];
+if (!state.saved) state.saved = [];
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
@@ -201,9 +202,29 @@ function renderHome() {
   $$('#homeContent .home-offer').forEach(el => el.addEventListener('click', () => nav('trades')));
   $$('#homeContent .home-msg').forEach(el => el.addEventListener('click', () => { activeConvo = +el.dataset.convo; currentFolder = 'inbox'; nav('messages'); }));
   $$('#homeContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
+  bindSaveButtons();
 }
 
-// ---------- BROWSE ----------
+// ---------- SAVED ----------
+// Bookmark an item to come back to it. Saved items live in Profile.
+function isSaved(id) { return state.saved.includes(id); }
+function toggleSave(id) {
+  if (isSaved(id)) {
+    state.saved = state.saved.filter(x => x !== id);
+    toast('Removed from saved.');
+  } else {
+    state.saved.push(id);
+    toast('Saved.');
+  }
+  save();
+}
+function bindSaveButtons() {
+  $$('[data-save]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleSave(+b.dataset.save);
+    b.classList.toggle('saved', isSaved(+b.dataset.save));
+  }));
+}
 // Local-first: listings sorted nearest-first, filterable by radius.
 function renderBrowse() {
   const cats = ['All', 'Electronics', 'Music', 'Outdoor', 'Collectibles', 'Fashion'];
@@ -222,9 +243,11 @@ function renderBrowse() {
   $('#noResults').classList.toggle('hidden', items.length > 0);
   $('#browseGrid').innerHTML = items.map(cardHTML).join('');
   $$('#browseGrid .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
+  bindSaveButtons();
 }
 function cardHTML(i) {
   return `<article class="card ${i.traded ? 'traded' : ''}" data-id="${i.id}">
+    <button class="save-btn ${isSaved(i.id) ? 'saved' : ''}" data-save="${i.id}" aria-label="Save item"><span class="material-symbols-outlined">bookmark</span></button>
     <img src="${esc(i.image)}" alt="${esc(i.title)}" loading="lazy">
     <div class="card-body">
       <div class="card-title-row"><span class="card-title">${esc(i.title)}</span><span class="badge">${i.traded ? 'Traded' : esc(i.condition)}</span></div>
@@ -244,6 +267,7 @@ function openDetail(id) {
   const i = itemById(id);
   const mine = i.owner === ME.name;
   $('#detailContent').innerHTML = `
+    <button class="save-btn detail-save ${isSaved(i.id) ? 'saved' : ''}" data-save="${i.id}" aria-label="Save item"><span class="material-symbols-outlined">bookmark</span></button>
     <img class="detail-img" src="${esc(i.image)}" alt="${esc(i.title)}">
     <div class="detail-head"><h1>${esc(i.title)}</h1><span class="badge">${i.traded ? 'Traded' : esc(i.condition)}</span></div>
     <p class="detail-desc">${esc(i.desc)}</p>
@@ -275,6 +299,8 @@ function openDetail(id) {
   if (blockCancel) blockCancel.addEventListener('click', () => $('#blockConfirm').classList.add('hidden'));
   const blockConfirmBtn = $('#blockConfirmBtn');
   if (blockConfirmBtn) blockConfirmBtn.addEventListener('click', () => { blockUser(i.owner); nav('discover'); });
+  bindSaveButtons();
+  nav('detail');
   const btn = $('#proposeBtn');
   if (btn) btn.addEventListener('click', () => openTradeModal(id));
   const cashBtn = $('#cashOfferBtn');
@@ -689,6 +715,8 @@ function renderProfile() {
     </div>
     <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
     <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>
+    <div class="section-head"><h2>Saved</h2></div>
+    <div class="grid">${state.items.filter(x => isSaved(x.id) && !state.blocked.includes(x.owner)).map(cardHTML).join('') || '<p class="empty">Nothing saved yet — tap the bookmark on any item.</p>'}</div>
     <div class="card safety-card"><h2>Stay safe</h2><ul>
       <li>Meet in a public place during the day — a coffee shop, library, or police station lobby.</li>
       <li>Bring a friend, and tell someone where you're going.</li>
@@ -710,7 +738,8 @@ function renderProfile() {
     toast('Signed out.');
     nav('auth');
   });
-  $$('#profileContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
+  $$('#profileContent .card[data-id]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
+  bindSaveButtons();
 }
 
 // ---------- INIT ----------

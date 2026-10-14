@@ -7,7 +7,7 @@
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-@font-face{font-family:'Material Symbols Outlined';font-style:normal;font-weight:100 700;font-display:block;src:url('fonts/material-symbols-embedded.woff2?v=2') format('woff2')}
+@font-face{font-family:'Material Symbols Outlined';font-style:normal;font-weight:100 700;font-display:block;src:url('fonts/material-symbols-embedded.woff2?v=3') format('woff2')}
 .material-symbols-outlined{font-family:'Material Symbols Outlined';font-weight:normal;font-style:normal;font-size:24px;line-height:1;letter-spacing:normal;text-transform:none;display:inline-block;white-space:nowrap;direction:ltr;-webkit-font-smoothing:antialiased;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
 .icon-inline{font-size:16px}
 .icon-star{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--star);font-size:14px}
@@ -51,7 +51,10 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media(max-width:820px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.grid{grid-template-columns:1fr}}
-.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;cursor:pointer;transition:box-shadow .15s;position:relative}
+.save-btn{position:absolute;top:10px;right:10px;width:34px;height:34px;border:0;border-radius:999px;background:rgba(255,255,255,.92);color:var(--text-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:2}
+.save-btn .material-symbols-outlined{font-size:20px;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24}
+.save-btn.saved .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--action)}
 .card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .card img{width:100%;height:200px;object-fit:cover;display:block;background:#F3F4F6}
 .card-body{padding:16px}
@@ -69,6 +72,8 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .empty{text-align:center;color:var(--text-muted);padding:48px 0;font-size:14px}
 .back-btn{background:none;border:0;color:var(--action);font:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:4px}
 .detail-img{width:100%;max-height:420px;object-fit:cover;border-radius:var(--radius-card);background:#F3F4F6}
+#detailContent{position:relative}
+.save-btn.detail-save{top:12px;right:12px}
 .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:16px 0 8px}
 .detail-head h1{font-size:24px}
 .detail-desc{font-size:16px;line-height:24px;color:var(--text-secondary);margin-bottom:16px}

@@ -20,6 +20,7 @@ ICONS = {
     'arrow_back': 'glyph01179',
     'arrow_forward': 'glyph01181',
     'radar': 'glyph02136',
+    'bookmark': 'glyph00962',
 }
 
 font = TTFont(SRC)
