@@ -38,6 +38,8 @@ const SEED = {
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED); }
 catch { state = structuredClone(SEED); }
+// Migrate old offer statuses: pre-trade-window 'Accepted' means the trade completed.
+if (state.offers) state.offers.forEach(o => { if (o.status === 'Accepted') o.status = 'Completed'; });
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
 let currentCategory = 'All';
@@ -165,7 +167,8 @@ function openDetail(id) {
 function openTradeModal(targetId) {
   tradeTargetId = targetId;
   tradeSelectedMine = null;
-  $('#tradeTargetTitle').textContent = itemById(targetId).title;
+  const target = itemById(targetId);
+  $('#tradeTargetCard').innerHTML = `<div class="mini-item"><img src="${esc(target.image)}" alt=""><div><div class="mi-title">${esc(target.title)}</div><div class="mi-sub">${esc(target.condition)} · ${esc(target.owner)}</div></div></div>`;
   const mine = state.items.filter(i => i.owner === ME.name);
   $('#myItemsPicker').innerHTML = mine.map(i =>
     `<div class="mini-item" data-id="${i.id}"><img src="${esc(i.image)}" alt=""><div><div class="mi-title">${esc(i.title)}</div><div class="mi-sub">${esc(i.condition)}</div></div></div>`).join('');
@@ -207,11 +210,15 @@ $('#addForm').addEventListener('submit', e => {
 });
 
 // ---------- TRADES ----------
+// RuneScape-style trade window: both sides' items visible at once,
+// both sides must confirm. Step 1: review + accept/decline.
+// Step 2: confirm screen. Then the other side confirms -> completed.
 $$('.tab').forEach(t => t.addEventListener('click', () => {
   activeTab = t.dataset.tab;
   $$('.tab').forEach(x => x.classList.toggle('active', x === t));
   renderTrades();
 }));
+function statusClass(s) { return 'status-' + s.toLowerCase().replace(/\s+/g, '-'); }
 function renderTrades() {
   const rec = state.offers.filter(o => o.direction === 'received').length;
   const sent = state.offers.filter(o => o.direction === 'sent').length;
@@ -219,35 +226,70 @@ function renderTrades() {
   $('#sentCount').textContent = sent;
   const list = state.offers.filter(o => o.direction === activeTab);
   $('#offersList').innerHTML = list.length ? list.map(offerHTML).join('') : `<p class="empty">No ${activeTab} offers yet.</p>`;
-  $$('#offersList .offer-card').forEach(card => {
-    const id = +card.dataset.id;
-    const acc = card.querySelector('[data-act="accept"]');
-    const dec = card.querySelector('[data-act="decline"]');
-    if (acc) acc.addEventListener('click', () => setOffer(id, 'Accepted'));
-    if (dec) dec.addEventListener('click', () => setOffer(id, 'Declined'));
-  });
+  $$('#offersList .offer-card').forEach(card => card.addEventListener('click', () => openTradeWindow(+card.dataset.id)));
 }
 function offerHTML(o) {
   const theirs = itemById(o.theirItemId);
   const mine = itemById(o.myItemId);
-  const actions = o.direction === 'received' && o.status === 'Pending'
-    ? `<div class="offer-actions"><button class="btn btn-dark" data-act="accept">Accept</button><button class="btn btn-outline" data-act="decline">Decline</button></div>` : '';
   return `<div class="offer-card" data-id="${o.id}">
     <div class="offer-top"><span class="offer-from">${o.direction === 'received' ? 'From ' + esc(o.from) : 'To ' + esc(theirs ? theirs.owner : '')}</span>
-    <span><span class="status ${o.status}">${o.status}</span> <span class="offer-date">${esc(o.date)}</span></span></div>
+    <span><span class="status ${statusClass(o.status)}">${esc(o.status)}</span> <span class="offer-date">${esc(o.date)}</span></span></div>
     <div class="trade-sides">
       <div><div class="side-label">They offer</div><div class="mini-item"><img src="${theirs ? esc(theirs.image) : ''}"><div><div class="mi-title">${theirs ? esc(theirs.title) : 'Item removed'}</div><div class="mi-sub">${theirs ? esc(theirs.condition) : ''}</div></div></div></div>
       <div><div class="side-label">For your item</div><div class="mini-item"><img src="${mine ? esc(mine.image) : ''}"><div><div class="mi-title">${mine ? esc(mine.title) : 'Item removed'}</div><div class="mi-sub">${mine ? esc(mine.condition) : ''}</div></div></div></div>
     </div>
-    <p class="offer-msg">${esc(o.message)}</p>${actions}</div>`;
+    <p class="offer-msg">${esc(o.message)}</p><p class="offer-tap-hint">Tap to review this trade <span class="material-symbols-outlined icon-inline">arrow_forward</span></p></div>`;
 }
-function setOffer(id, status) {
+function tradeItemCard(item, fallback) {
+  if (!item) return `<div class="mini-item"><div><div class="mi-title">${fallback}</div></div></div>`;
+  return `<div class="mini-item"><img src="${esc(item.image)}" alt=""><div><div class="mi-title">${esc(item.title)}</div><div class="mi-sub">${esc(item.condition)} · ${esc(item.owner)}</div></div></div>`;
+}
+function openTradeWindow(id, step) {
   const o = state.offers.find(x => x.id === id);
   if (!o) return;
-  o.status = status;
-  save();
-  toast(status === 'Accepted' ? 'Trade accepted!' : 'Offer declined.');
-  renderTrades();
+  const theirs = itemById(o.theirItemId);
+  const mine = itemById(o.myItemId);
+  const otherName = o.direction === 'received' ? o.from : (theirs ? theirs.owner : 'Trader');
+  const box = $('#tradeWindowContent');
+  const panes = `<div class="trade-panes">
+    <div class="trade-pane"><div class="side-label">You're offering</div>${tradeItemCard(mine, 'Item removed')}</div>
+    <div class="trade-divider"><span class="material-symbols-outlined">swap_horiz</span></div>
+    <div class="trade-pane"><div class="side-label">They're offering</div>${tradeItemCard(theirs, 'Item removed')}</div>
+  </div>`;
+  const closeBtn = `<button class="btn btn-ghost" id="twClose">Close</button>`;
+  if (o.status === 'Completed') {
+    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+  } else if (o.status === 'Declined' || o.status === 'Cancelled') {
+    box.innerHTML = `<h2>Trade ${o.status.toLowerCase()}</h2><p class="muted">This offer is no longer active.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+  } else if (o.status === 'Awaiting confirmation') {
+    box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+  } else if (step === 'confirm') {
+    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
+    $('#twBack').addEventListener('click', () => openTradeWindow(id));
+    $('#twConfirm').addEventListener('click', () => {
+      o.status = 'Awaiting confirmation';
+      save();
+      openTradeWindow(id);
+      renderTrades();
+      setTimeout(() => {
+        o.status = 'Completed';
+        save();
+        toast('Trade completed with ' + otherName + '!');
+        renderTrades();
+        openTradeWindow(id);
+      }, 2500);
+    });
+  } else if (o.direction === 'received') {
+    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button></div>`;
+    $('#twDecline').addEventListener('click', () => { o.status = 'Declined'; save(); toast('Offer declined.'); renderTrades(); openTradeWindow(id); });
+    $('#twAccept').addEventListener('click', () => openTradeWindow(id, 'confirm'));
+  } else {
+    box.innerHTML = `<h2>Offer to ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="muted" style="margin-top:12px">Waiting for ${esc(otherName)} to respond.</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twCancel">Cancel Offer</button>${closeBtn}</div>`;
+    $('#twCancel').addEventListener('click', () => { o.status = 'Cancelled'; save(); toast('Offer cancelled.'); renderTrades(); openTradeWindow(id); });
+  }
+  const close = $('#twClose');
+  if (close) close.addEventListener('click', () => $('#tradeWindow').classList.add('hidden'));
+  $('#tradeWindow').classList.remove('hidden');
 }
 
 // ---------- MESSAGES ----------

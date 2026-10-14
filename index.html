@@ -96,17 +96,25 @@
   </section>
 </main>
 
-<!-- TRADE PROPOSAL MODAL -->
+<!-- TRADE PROPOSAL MODAL — two-sided, RuneScape-style -->
 <div id="tradeModal" class="modal hidden">
-  <div class="modal-card">
+  <div class="modal-card trade-window">
     <h2>Propose a Trade</h2>
-    <p class="muted">Choose one of your items to offer for <strong id="tradeTargetTitle"></strong>.</p>
-    <div id="myItemsPicker" class="picker"></div>
+    <div class="trade-panes">
+      <div class="trade-pane"><div class="side-label">You want</div><div id="tradeTargetCard"></div></div>
+      <div class="trade-divider"><span class="material-symbols-outlined">swap_horiz</span></div>
+      <div class="trade-pane"><div class="side-label">You offer</div><div id="myItemsPicker" class="picker"></div></div>
+    </div>
     <div class="form-actions">
       <button class="btn btn-ghost" id="tradeCancel">Cancel</button>
-      <button class="btn btn-primary" id="tradeConfirm">Send Offer</button>
+      <button class="btn btn-primary" id="tradeConfirm">Propose Trade</button>
     </div>
   </div>
+</div>
+
+<!-- TRADE WINDOW MODAL — two-sided offer with dual confirmation -->
+<div id="tradeWindow" class="modal hidden">
+  <div class="modal-card trade-window" id="tradeWindowContent"></div>
 </div>
 
 <div id="toast" class="toast hidden"></div>
