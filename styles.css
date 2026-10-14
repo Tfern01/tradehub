@@ -215,6 +215,15 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .cash-note{font-size:12px;color:var(--text-muted);margin-top:4px}
 .cash-confirm{background:var(--bg-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-top:12px}
 .cash-confirm p{font-size:14px;margin-bottom:8px}
+.card.traded img{opacity:.55}
+.rating-form{margin-top:20px;border-top:1px solid var(--border-subtle);padding-top:16px}
+.rating-form h3{font-size:16px;margin-bottom:8px}
+.rating-stars{display:flex;gap:4px;margin-bottom:12px}
+.star-pick{border:0;background:none;cursor:pointer;padding:2px;line-height:1}
+.star-pick .material-symbols-outlined{font-size:32px;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--text-muted)}
+.star-pick.selected .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--star)}
+.rating-form textarea{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-input);font:inherit;font-size:14px;margin-bottom:12px;resize:vertical}
+.rating-done{margin-top:20px;border-top:1px solid var(--border-subtle);padding-top:16px;font-size:14px;display:flex;align-items:center;gap:6px}
 .muted{color:var(--text-muted);font-size:14px;line-height:20px}
 .picker{display:flex;flex-direction:column;gap:8px;margin:16px 0}
 .picker .mini-item{cursor:pointer}

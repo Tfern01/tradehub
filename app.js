@@ -45,6 +45,7 @@ try { state = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED); }
 catch { state = structuredClone(SEED); }
 // Migrate old offer statuses: pre-trade-window 'Accepted' means the trade completed.
 if (state.offers) state.offers.forEach(o => { if (o.status === 'Accepted') o.status = 'Completed'; });
+if (!state.ratings) state.ratings = [];
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
@@ -167,7 +168,7 @@ $('#demoSignin').addEventListener('click', () => signInAs(DEMO_ACCOUNT));
 // nearby items, and your listings. Discover is the full catalog.
 function renderHome() {
   const mine = state.items.filter(i => i.owner === ME.name);
-  const nearby = state.items.filter(i => i.owner !== ME.name).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
+  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
   const offerRow = o => {
@@ -211,7 +212,8 @@ function renderBrowse() {
     `<button class="chip ${v === currentRadius ? 'active' : ''}" data-radius="${v}">${label}</button>`).join('');
   $$('#radiusChips .chip').forEach(ch => ch.addEventListener('click', () => { currentRadius = +ch.dataset.radius; renderBrowse(); }));
   const items = state.items
-    .filter(i => (currentCategory === 'All' || i.category === currentCategory) &&
+    .filter(i => !i.traded &&
+      (currentCategory === 'All' || i.category === currentCategory) &&
       (currentRadius === 0 || (i.distance ?? 999) <= currentRadius))
     .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
   $('#noResults').classList.toggle('hidden', items.length > 0);
@@ -219,10 +221,10 @@ function renderBrowse() {
   $$('#browseGrid .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
 }
 function cardHTML(i) {
-  return `<article class="card" data-id="${i.id}">
+  return `<article class="card ${i.traded ? 'traded' : ''}" data-id="${i.id}">
     <img src="${esc(i.image)}" alt="${esc(i.title)}" loading="lazy">
     <div class="card-body">
-      <div class="card-title-row"><span class="card-title">${esc(i.title)}</span><span class="badge">${esc(i.condition)}</span></div>
+      <div class="card-title-row"><span class="card-title">${esc(i.title)}</span><span class="badge">${i.traded ? 'Traded' : esc(i.condition)}</span></div>
       <p class="card-desc">${esc(i.desc)}</p>
       ${i.cashPrice ? `<div class="cash-note">Also accepts $${esc(i.cashPrice)} cash</div>` : ''}
       <div class="owner-row">
@@ -240,7 +242,7 @@ function openDetail(id) {
   const mine = i.owner === ME.name;
   $('#detailContent').innerHTML = `
     <img class="detail-img" src="${esc(i.image)}" alt="${esc(i.title)}">
-    <div class="detail-head"><h1>${esc(i.title)}</h1><span class="badge">${esc(i.condition)}</span></div>
+    <div class="detail-head"><h1>${esc(i.title)}</h1><span class="badge">${i.traded ? 'Traded' : esc(i.condition)}</span></div>
     <p class="detail-desc">${esc(i.desc)}</p>
     <p class="detail-meta">Category: ${esc(i.category)} &nbsp;·&nbsp; Listed ${esc(i.listed)}${i.distance == null ? '' : (i.distance === 0 ? ' &nbsp;·&nbsp; Your listing' : ' &nbsp;·&nbsp; ' + esc(i.distance) + ' mi away')}</p>
     <div class="owner-card">
@@ -251,7 +253,9 @@ function openDetail(id) {
         <div class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating} · ${i.owner === ME.name ? state.items.filter(x => x.owner === ME.name).length : '—'} items</div>
       </div>
     </div>
-    ${mine
+    ${i.traded
+      ? `<p class="muted">This item has been traded.</p>`
+      : mine
       ? `<p class="muted">This is your item.</p>`
       : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
       ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
@@ -425,7 +429,27 @@ function openTradeWindow(id, step) {
   </div>`;
   const closeBtn = `<button class="btn btn-ghost" id="twClose">Close</button>`;
   if (o.status === 'Completed') {
-    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
+    const existing = state.ratings.find(r => r.offerId === o.id);
+    const ratingSection = existing
+      ? `<div class="rating-done"><span class="material-symbols-outlined icon-star">star</span> You rated ${esc(otherName)} ${existing.stars} out of 5${existing.comment ? ` — “${esc(existing.comment)}”` : ''}</div>`
+      : `<div class="rating-form"><h3>How was trading with ${esc(otherName)}?</h3>
+        <div class="rating-stars" id="ratingStars">${[1, 2, 3, 4, 5].map(n => `<button class="star-pick" data-stars="${n}"><span class="material-symbols-outlined">star</span></button>`).join('')}</div>
+        <textarea id="ratingComment" rows="2" placeholder="Anything to add? (optional)"></textarea>
+        <button class="btn btn-primary" id="ratingSubmit">Submit Rating</button></div>`;
+    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}${ratingSection}<div class="form-actions">${closeBtn}</div>`;
+    let picked = 0;
+    $$('#ratingStars .star-pick').forEach(b => b.addEventListener('click', () => {
+      picked = +b.dataset.stars;
+      $$('#ratingStars .star-pick').forEach(x => x.classList.toggle('selected', +x.dataset.stars <= picked));
+    }));
+    const submit = $('#ratingSubmit');
+    if (submit) submit.addEventListener('click', () => {
+      if (!picked) { toast('Tap the stars to rate this trade.'); return; }
+      state.ratings.push({ offerId: o.id, from: ME.name, to: otherName, stars: picked, comment: $('#ratingComment').value.trim(), date: new Date().toLocaleDateString('en-US') });
+      save();
+      toast('Thanks for rating ' + otherName + '!');
+      openTradeWindow(id);
+    });
   } else if (o.status === 'Declined' || o.status === 'Cancelled') {
     box.innerHTML = `<h2>Trade ${o.status.toLowerCase()}</h2><p class="muted">This offer is no longer active.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
   } else if (o.status === 'Awaiting confirmation') {
@@ -440,6 +464,8 @@ function openTradeWindow(id, step) {
       renderTrades();
       setTimeout(() => {
         o.status = 'Completed';
+        // Traded items leave circulation.
+        [mine, theirs].forEach(it => { if (it) it.traded = true; });
         save();
         toast('Trade completed with ' + otherName + '!');
         renderTrades();
