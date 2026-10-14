@@ -185,7 +185,7 @@ function renderHome() {
   };
   $('#homeContent').innerHTML = `
     <div class="home-welcome"><h1>Welcome back, Alex</h1><p>Here's what's happening with your trades.</p></div>
-    <div class="promise-banner"><span class="material-symbols-outlined">swap_horiz</span><span><b>Item trades are free</b> — you keep 100%. A 3% fee applies to cash payments.</span></div>
+    <div class="promise-banner"><span class="material-symbols-outlined">swap_horiz</span><span><b>Item trades are free</b> — you keep 100%. A 5% fee applies to cash payments.</span></div>
     <div class="home-stats">
       <div class="home-stat" data-nav="profile"><b>${mine.length}</b><span>Your listings</span></div>
       <div class="home-stat" data-nav="trades"><b>${pending.length}</b><span>Pending offers</span></div>
@@ -286,7 +286,7 @@ function openDetail(id) {
       ? `<p class="muted">This is your item.</p>`
       : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
       ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
-      <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p><p class="promise-small">A 3% TradeHub fee applies to cash payments. Arrange payment directly with ${esc(i.owner)}.</p>
+      <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p><p class="promise-small">A 5% TradeHub fee applies to cash payments. Arrange payment directly with ${esc(i.owner)}.</p>
       <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}`}`;
   const detailActions = `<div class="detail-actions"><button class="text-btn" id="reportListingBtn">Report listing</button>${mine ? '' : `<button class="text-btn" id="blockUserBtn">Block ${esc(i.owner)}</button>`}</div>
   <div id="blockConfirm" class="cash-confirm hidden"><p>Block ${esc(i.owner)}? You won't see their listings, offers, or messages.</p><div class="form-actions"><button class="btn btn-ghost" id="blockCancel">Cancel</button><button class="btn btn-primary" id="blockConfirmBtn">Block</button></div></div>`;
@@ -525,7 +525,7 @@ function openTradeWindow(id, step) {
     box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
   } else if (step === 'confirm') {
     const feeLine = o.type === 'cash'
-      ? ` A 3% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.97).toFixed(2)} of $${esc(o.cashAmount)}.`
+      ? ` A 5% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.95).toFixed(2)} of $${esc(o.cashAmount)}.`
       : '';
     box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
     $('#twBack').addEventListener('click', () => openTradeWindow(id));
