@@ -527,7 +527,7 @@ function openTradeWindow(id, step) {
     const feeLine = o.type === 'cash'
       ? ` A 5% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.95).toFixed(2)} of $${esc(o.cashAmount)}.`
       : '';
-    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
+    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button>${closeBtn}<button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
     $('#twBack').addEventListener('click', () => openTradeWindow(id));
     $('#twConfirm').addEventListener('click', () => {
       o.status = 'Awaiting confirmation';
@@ -545,7 +545,7 @@ function openTradeWindow(id, step) {
       }, 2500);
     });
   } else if (o.direction === 'received') {
-    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button></div>`;
+    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button>${closeBtn}</div>`;
     $('#twDecline').addEventListener('click', () => { o.status = 'Declined'; save(); toast('Offer declined.'); renderTrades(); openTradeWindow(id); });
     $('#twAccept').addEventListener('click', () => openTradeWindow(id, 'confirm'));
   } else {
@@ -553,9 +553,21 @@ function openTradeWindow(id, step) {
     $('#twCancel').addEventListener('click', () => { o.status = 'Cancelled'; save(); toast('Offer cancelled.'); renderTrades(); openTradeWindow(id); });
   }
   const close = $('#twClose');
-  if (close) close.addEventListener('click', () => $('#tradeWindow').classList.add('hidden'));
+  if (close) close.addEventListener('click', closeTradeWindow);
+  box.insertAdjacentHTML('afterbegin', '<button class="modal-x" id="twX" aria-label="Close">×</button>');
+  $('#twX').addEventListener('click', closeTradeWindow);
   $('#tradeWindow').classList.remove('hidden');
 }
+function closeTradeWindow() { $('#tradeWindow').classList.add('hidden'); }
+// Backdrop tap and Escape close the trade window and other modals.
+$('#tradeWindow').addEventListener('click', e => { if (e.target.id === 'tradeWindow') closeTradeWindow(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeTradeWindow();
+    $('#tradeModal').classList.add('hidden');
+    $('#reportModal').classList.add('hidden');
+  }
+});
 
 // ---------- MESSAGES ----------
 // eBay-style messaging: item-led conversation list, item card pinned at the
@@ -626,7 +638,7 @@ function renderMessages() {
     <div class="thread-head">
       <button class="thread-back" id="threadBack"><span class="material-symbols-outlined">arrow_back</span></button>
       <span class="avatar">${esc(convo.initials)}</span>
-      <div style="flex:1"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
+      <div class="thread-who"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
       <div class="thread-actions">
         ${inTrash
           ? `<button class="thread-action" id="restoreBtn">Restore</button><button class="thread-action danger" id="deleteForeverBtn">Delete forever</button>`
