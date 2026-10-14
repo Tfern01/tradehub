@@ -15,6 +15,35 @@
 </header>
 
 <main id="app">
+  <!-- AUTH -->
+  <section id="view-auth" class="view">
+    <div class="auth-card card">
+      <h1 class="auth-title">Welcome to TradeHub</h1>
+      <p class="muted">Trade locally, item for item. Your account is standalone — no Facebook, Google, or PayPal login, ever.</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-tab="signin">Sign in</button>
+        <button class="auth-tab" data-auth-tab="signup">Create account</button>
+      </div>
+      <form id="signinForm" class="auth-form">
+        <label>Email <input id="siEmail" type="email" required autocomplete="email"></label>
+        <label>Password <input id="siPass" type="password" required autocomplete="current-password"></label>
+        <p id="siError" class="auth-error hidden"></p>
+        <button type="submit" class="btn btn-primary auth-submit">Sign in</button>
+      </form>
+      <form id="signupForm" class="auth-form hidden">
+        <label>Name <input id="suName" type="text" required autocomplete="name" placeholder="e.g., Tyler Reed"></label>
+        <label>Email <input id="suEmail" type="email" required autocomplete="email"></label>
+        <label>City <input id="suCity" type="text" required autocomplete="address-level2" placeholder="e.g., Gilmer, TX"></label>
+        <label>Password <input id="suPass" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+        <p id="suError" class="auth-error hidden"></p>
+        <button type="submit" class="btn btn-primary auth-submit">Create account</button>
+      </form>
+      <div class="auth-divider"><span>or</span></div>
+      <button class="btn btn-outline auth-submit" id="demoSignin">Explore the demo</button>
+      <p class="muted auth-demo-note">Demo account: alex@demo.tradehub / demo1234</p>
+    </div>
+  </section>
+
   <!-- HOME -->
   <section id="view-home" class="view active">
     <div id="homeContent"></div>

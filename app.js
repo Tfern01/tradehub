@@ -2,7 +2,7 @@
 const KEY = 'tradehub-state-v4';
 // Demo data is localized around Alex in San Francisco so the radius
 // filter shows real results. Distances are miles from San Francisco.
-const ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, CA', since: 'January 2024', rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.', initials: 'AM', color: '#DBEAFE', text: '#155DFC' };
+let ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, CA', since: 'January 2024', rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.', initials: 'AM', color: '#DBEAFE', text: '#155DFC' };
 
 const SEED = {
   items: [
@@ -53,6 +53,37 @@ function save() {
   }
 }
 
+// ---------- ACCOUNTS ----------
+// Standalone TradeHub accounts: email + password only. No Facebook,
+// Google, or PayPal login anywhere. Passwords are stored as SHA-256
+// hashes, never in plain text. (Demo data, stored in this browser.)
+const ACCOUNTS_KEY = 'tradehub-accounts-v1';
+const SESSION_KEY = 'tradehub-session-v1';
+const DEMO_ACCOUNT = { name: 'Alex Martinez', email: 'alex@demo.tradehub', city: 'San Francisco, CA', passHash: '0ead2060b65992dca4769af601a1b3a35ef38cfad2c2c465bb160ea764157c5d', createdAt: 1704067200000, rating: 4.8, trades: 24, bio: 'Tech enthusiast and avid trader. Always looking for interesting gear and new connections.' };
+let accounts;
+try { accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || null; }
+catch { accounts = null; }
+if (!accounts) { accounts = [DEMO_ACCOUNT]; localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); }
+function persistAccounts() { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); }
+function getSessionAccount() {
+  const email = localStorage.getItem(SESSION_KEY);
+  return accounts.find(a => a.email === email) || null;
+}
+function accountToME(acc) {
+  const parts = acc.name.trim().split(/\s+/);
+  const initials = ((parts[0] || '')[0] || '') + ((parts[parts.length - 1] || '')[0] || '');
+  return { name: acc.name, handle: '@' + acc.email.split('@')[0].replace(/[^a-z0-9._]/gi, ''), location: acc.city, since: acc.createdAt ? new Date(acc.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'January 2024', rating: acc.rating ?? '—', trades: acc.trades ?? 0, bio: acc.bio || 'New trader on TradeHub.', initials: initials.toUpperCase(), color: '#DBEAFE', text: '#155DFC' };
+}
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function signInAs(acc) {
+  localStorage.setItem(SESSION_KEY, acc.email);
+  ME = accountToME(acc);
+  nav('home');
+}
+
 let currentCategory = 'All';
 let currentRadius = 0; // 0 = any distance
 let activeTab = 'received';
@@ -74,6 +105,8 @@ function toast(msg) {
 }
 
 function nav(view) {
+  if (view !== 'auth' && !getSessionAccount()) view = 'auth';
+  document.body.classList.toggle('on-auth', view === 'auth');
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#view-' + view).classList.add('active');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === view));
@@ -85,6 +118,49 @@ function nav(view) {
   if (view === 'profile') renderProfile();
 }
 $$('[data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+
+// ---------- AUTH ----------
+$$('.auth-tab').forEach(t => t.addEventListener('click', () => {
+  $$('.auth-tab').forEach(x => x.classList.toggle('active', x === t));
+  const tab = t.dataset.authTab;
+  $('#signinForm').classList.toggle('hidden', tab !== 'signin');
+  $('#signupForm').classList.toggle('hidden', tab !== 'signup');
+}));
+function authError(id, msg) {
+  const el = $(id);
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+$('#signinForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#siEmail').value.trim().toLowerCase();
+  const pass = $('#siPass').value;
+  const acc = accounts.find(a => a.email === email);
+  if (!acc) { authError('#siError', 'No account with that email. Try creating one.'); return; }
+  if (await sha256(pass) !== acc.passHash) { authError('#siError', 'Wrong password.'); return; }
+  authError('#siError', '');
+  toast('Welcome back, ' + acc.name.split(' ')[0] + '!');
+  signInAs(acc);
+});
+$('#signupForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('#suName').value.trim();
+  const email = $('#suEmail').value.trim().toLowerCase();
+  const city = $('#suCity').value.trim();
+  const pass = $('#suPass').value;
+  if (!name) { authError('#suError', 'Please enter your name.'); return; }
+  if (!/^\S+@\S+\.\S+$/.test(email)) { authError('#suError', 'Please enter a valid email address.'); return; }
+  if (!city) { authError('#suError', 'Please enter your city.'); return; }
+  if (pass.length < 8) { authError('#suError', 'Password must be at least 8 characters.'); return; }
+  if (accounts.some(a => a.email === email)) { authError('#suError', 'An account with that email already exists. Try signing in.'); return; }
+  const acc = { name, email, city, passHash: await sha256(pass), createdAt: Date.now(), rating: '—', trades: 0, bio: 'New trader on TradeHub.' };
+  accounts.push(acc);
+  persistAccounts();
+  authError('#suError', '');
+  toast('Welcome to TradeHub, ' + name.split(' ')[0] + '!');
+  signInAs(acc);
+});
+$('#demoSignin').addEventListener('click', () => signInAs(DEMO_ACCOUNT));
 
 // ---------- HOME ----------
 // Personalized hub: your activity, pending offers, unread messages,
@@ -533,14 +609,23 @@ function renderProfile() {
           <div class="stat"><b>${mine.length}</b><span>Items</span></div>
         </div>
         <p class="bio" style="margin-top:12px">${ME.bio}</p>
+        <button class="btn btn-outline" id="signOutBtn" style="margin-top:16px">Sign out</button>
       </div>
     </div>
     <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
     <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>`;
   $$('#profileContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+  const signOut = $('#signOutBtn');
+  if (signOut) signOut.addEventListener('click', () => {
+    localStorage.removeItem(SESSION_KEY);
+    toast('Signed out.');
+    nav('auth');
+  });
   $$('#profileContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
 }
 
 // ---------- INIT ----------
+const sess = getSessionAccount();
+if (sess) ME = accountToME(sess);
 updateMsgBadge();
-nav('home');
+nav(sess ? 'home' : 'auth');
