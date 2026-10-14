@@ -46,6 +46,8 @@ catch { state = structuredClone(SEED); }
 // Migrate old offer statuses: pre-trade-window 'Accepted' means the trade completed.
 if (state.offers) state.offers.forEach(o => { if (o.status === 'Accepted') o.status = 'Completed'; });
 if (!state.ratings) state.ratings = [];
+if (!state.blocked) state.blocked = [];
+if (!state.reports) state.reports = [];
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
@@ -168,7 +170,7 @@ $('#demoSignin').addEventListener('click', () => signInAs(DEMO_ACCOUNT));
 // nearby items, and your listings. Discover is the full catalog.
 function renderHome() {
   const mine = state.items.filter(i => i.owner === ME.name);
-  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
+  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
   const offerRow = o => {
@@ -212,7 +214,7 @@ function renderBrowse() {
     `<button class="chip ${v === currentRadius ? 'active' : ''}" data-radius="${v}">${label}</button>`).join('');
   $$('#radiusChips .chip').forEach(ch => ch.addEventListener('click', () => { currentRadius = +ch.dataset.radius; renderBrowse(); }));
   const items = state.items
-    .filter(i => !i.traded &&
+    .filter(i => !i.traded && !state.blocked.includes(i.owner) &&
       (currentCategory === 'All' || i.category === currentCategory) &&
       (currentRadius === 0 || (i.distance ?? 999) <= currentRadius))
     .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
@@ -261,6 +263,17 @@ function openDetail(id) {
       ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
       <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p>
       <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}`}`;
+  const detailActions = `<div class="detail-actions"><button class="text-btn" id="reportListingBtn">Report listing</button>${mine ? '' : `<button class="text-btn" id="blockUserBtn">Block ${esc(i.owner)}</button>`}</div>
+  <div id="blockConfirm" class="cash-confirm hidden"><p>Block ${esc(i.owner)}? You won't see their listings, offers, or messages.</p><div class="form-actions"><button class="btn btn-ghost" id="blockCancel">Cancel</button><button class="btn btn-primary" id="blockConfirmBtn">Block</button></div></div>`;
+  $('#detailContent').insertAdjacentHTML('beforeend', detailActions);
+  const reportBtn = $('#reportListingBtn');
+  if (reportBtn) reportBtn.addEventListener('click', () => openReport(i.owner + ' — ' + i.title));
+  const blockBtn = $('#blockUserBtn');
+  if (blockBtn) blockBtn.addEventListener('click', () => $('#blockConfirm').classList.remove('hidden'));
+  const blockCancel = $('#blockCancel');
+  if (blockCancel) blockCancel.addEventListener('click', () => $('#blockConfirm').classList.add('hidden'));
+  const blockConfirmBtn = $('#blockConfirmBtn');
+  if (blockConfirmBtn) blockConfirmBtn.addEventListener('click', () => { blockUser(i.owner); nav('discover'); });
   const btn = $('#proposeBtn');
   if (btn) btn.addEventListener('click', () => openTradeModal(id));
   const cashBtn = $('#cashOfferBtn');
@@ -366,7 +379,29 @@ $('#addForm').addEventListener('submit', e => {
   nav('discover');
 });
 
-// ---------- TRADES ----------
+// ---------- SAFETY ----------
+// Report / Block. Blocked users' listings, offers, and conversations
+// are hidden everywhere; blocks can be undone from Profile.
+let reportTarget = null;
+function blockUser(name) {
+  if (!state.blocked.includes(name)) state.blocked.push(name);
+  save();
+  toast(name + ' blocked. You can unblock them from your Profile.');
+}
+function openReport(name) {
+  reportTarget = name;
+  $('#reportTargetName').textContent = name;
+  $('#reportNote').value = '';
+  $('#reportModal').classList.remove('hidden');
+}
+$('#reportCancel').addEventListener('click', () => $('#reportModal').classList.add('hidden'));
+$('#reportSubmit').addEventListener('click', () => {
+  if (!reportTarget) return;
+  state.reports.push({ target: reportTarget, reason: $('#reportReason').value, note: $('#reportNote').value.trim(), from: ME.name, date: new Date().toLocaleDateString('en-US') });
+  save();
+  $('#reportModal').classList.add('hidden');
+  toast('Thanks — we will review this report.');
+});
 // RuneScape-style trade window: both sides' items visible at once,
 // both sides must confirm. Step 1: review + accept/decline.
 // Step 2: confirm screen. Then the other side confirms -> completed.
@@ -381,7 +416,14 @@ function renderTrades() {
   const sent = state.offers.filter(o => o.direction === 'sent').length;
   $('#receivedCount').textContent = rec;
   $('#sentCount').textContent = sent;
-  const list = state.offers.filter(o => o.direction === activeTab);
+  const list = state.offers.filter(o => {
+    if (o.direction === 'received' && state.blocked.includes(o.from)) return false;
+    if (o.direction === 'sent') {
+      const theirs = itemById(o.theirItemId);
+      if (theirs && state.blocked.includes(theirs.owner)) return false;
+    }
+    return o.direction === activeTab;
+  });
   $('#offersList').innerHTML = list.length ? list.map(offerHTML).join('') : `<p class="empty">No ${activeTab} offers yet.</p>`;
   $$('#offersList .offer-card').forEach(card => card.addEventListener('click', () => openTradeWindow(+card.dataset.id)));
 }
@@ -455,7 +497,7 @@ function openTradeWindow(id, step) {
   } else if (o.status === 'Awaiting confirmation') {
     box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}<div class="form-actions">${closeBtn}</div>`;
   } else if (step === 'confirm') {
-    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
+    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
     $('#twBack').addEventListener('click', () => openTradeWindow(id));
     $('#twConfirm').addEventListener('click', () => {
       o.status = 'Awaiting confirmation';
@@ -489,7 +531,7 @@ function openTradeWindow(id, step) {
 // eBay-style messaging: item-led conversation list, item card pinned at the
 // top of each thread, chat bubbles, full-screen thread on mobile.
 function updateMsgBadge() {
-  const total = state.conversations.reduce((n, c) => n + (c.unread || 0), 0);
+  const total = state.conversations.filter(c => !state.blocked.includes(c.with)).reduce((n, c) => n + (c.unread || 0), 0);
   const badge = $('#msgBadge');
   badge.textContent = total;
   badge.classList.toggle('hidden', total === 0);
@@ -498,11 +540,12 @@ function renderMessages() {
   updateMsgBadge();
   const layout = $('.messages-layout');
   if (layout) layout.classList.toggle('thread-open', activeConvo !== null);
-  // Folder sidebar (Inbox / Sent / Unread / Trash).
-  const inboxN = state.conversations.filter(c => c.folder === 'inbox').length;
-  const sentN = state.conversations.filter(c => c.folder === 'sent').length;
-  const unreadN = state.conversations.filter(c => c.folder === 'inbox' && c.unread).length;
-  const trashN = state.conversations.filter(c => c.folder === 'trash').length;
+  // Folder sidebar (Inbox / Sent / Unread / Trash). Blocked users hidden.
+  const visibleConvos = state.conversations.filter(c => !state.blocked.includes(c.with));
+  const inboxN = visibleConvos.filter(c => c.folder === 'inbox').length;
+  const sentN = visibleConvos.filter(c => c.folder === 'sent').length;
+  const unreadN = visibleConvos.filter(c => c.folder === 'inbox' && c.unread).length;
+  const trashN = visibleConvos.filter(c => c.folder === 'trash').length;
   const folders = [
     ['inbox', 'Inbox', inboxN], ['sent', 'Sent', sentN],
     ['unread', 'Unread', unreadN], ['trash', 'Trash', trashN],
@@ -514,7 +557,7 @@ function renderMessages() {
     activeConvo = null;
     renderMessages();
   }));
-  const visible = state.conversations.filter(c =>
+  const visible = visibleConvos.filter(c =>
     currentFolder === 'inbox' ? c.folder === 'inbox' :
     currentFolder === 'sent' ? c.folder === 'sent' :
     currentFolder === 'unread' ? (c.folder === 'inbox' && c.unread) :
@@ -557,7 +600,7 @@ function renderMessages() {
       <div class="thread-actions">
         ${inTrash
           ? `<button class="thread-action" id="restoreBtn">Restore</button><button class="thread-action danger" id="deleteForeverBtn">Delete forever</button>`
-          : `<button class="thread-action" id="markUnreadBtn">Mark unread</button><button class="thread-action" id="trashBtn">Delete</button>`}
+          : `<button class="thread-action" id="markUnreadBtn">Mark unread</button><button class="thread-action" id="trashBtn">Delete</button><button class="thread-action" id="blockThreadBtn">Block</button>`}
       </div>
     </div>
     ${item ? `<div class="thread-item-card" data-item="${item.id}">
@@ -585,6 +628,11 @@ function renderMessages() {
     convo.folder = 'trash'; convo.unread = 0; save();
     toast('Conversation moved to Trash.');
     currentFolder = 'trash'; activeConvo = null; renderMessages();
+  });
+  const blockThreadBtn = $('#blockThreadBtn');
+  if (blockThreadBtn) blockThreadBtn.addEventListener('click', () => {
+    blockUser(convo.with);
+    activeConvo = null; renderMessages();
   });
   const restoreBtn = $('#restoreBtn');
   if (restoreBtn) restoreBtn.addEventListener('click', () => {
@@ -639,8 +687,22 @@ function renderProfile() {
       </div>
     </div>
     <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
-    <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>`;
+    <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>
+    <div class="card safety-card"><h2>Stay safe</h2><ul>
+      <li>Meet in a public place during the day — a coffee shop, library, or police station lobby.</li>
+      <li>Bring a friend, and tell someone where you're going.</li>
+      <li>Inspect items in person before confirming a trade.</li>
+      <li>Never share passwords, verification codes, or payment info in chat.</li>
+      <li>Trust your gut — if a deal feels off, walk away.</li>
+    </ul></div>
+    ${state.blocked.length ? `<div class="card blocked-card"><h2>Blocked users</h2>${state.blocked.map(n => `<div class="blocked-row"><span>${esc(n)}</span><button class="btn btn-outline" data-unblock="${esc(n)}">Unblock</button></div>`).join('')}</div>` : ''}`;
   $$('#profileContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+  $$('#profileContent [data-unblock]').forEach(b => b.addEventListener('click', () => {
+    state.blocked = state.blocked.filter(n => n !== b.dataset.unblock);
+    save();
+    toast(b.dataset.unblock + ' unblocked.');
+    renderProfile();
+  }));
   const signOut = $('#signOutBtn');
   if (signOut) signOut.addEventListener('click', () => {
     localStorage.removeItem(SESSION_KEY);

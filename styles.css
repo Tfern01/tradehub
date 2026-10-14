@@ -206,6 +206,8 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal-card{background:#fff;border-radius:var(--radius-card);padding:24px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto}
 .modal-card h2{margin-bottom:8px}
+.modal-card label{display:block;font-size:14px;font-weight:500;margin-bottom:14px}
+.modal-card select,.modal-card textarea{width:100%;margin-top:8px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-input);font:inherit;font-size:14px;background:#fff}
 .trade-window{max-width:560px}
 .trade-panes{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;margin:16px 0}
 @media(max-width:520px){.trade-panes{grid-template-columns:1fr}.trade-divider{transform:rotate(90deg);justify-self:center}}
@@ -223,7 +225,18 @@ body.on-auth .bottomnav,body.on-auth .header-msg{display:none}
 .star-pick .material-symbols-outlined{font-size:32px;font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--text-muted)}
 .star-pick.selected .material-symbols-outlined{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;color:var(--star)}
 .rating-form textarea{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-input);font:inherit;font-size:14px;margin-bottom:12px;resize:vertical}
-.rating-done{margin-top:20px;border-top:1px solid var(--border-subtle);padding-top:16px;font-size:14px;display:flex;align-items:center;gap:6px}
+.safety-note{background:#EFF6FF;border:1px solid #DBEAFE;border-radius:8px;padding:12px;font-size:13px;color:var(--text-secondary);margin:16px 0}
+.detail-actions{display:flex;gap:16px;margin-top:16px}
+.text-btn{border:0;background:none;color:var(--text-muted);font:inherit;font-size:13px;cursor:pointer;padding:0}
+.text-btn:hover{color:var(--text-primary)}
+.safety-card{margin-top:24px;padding:20px}
+.safety-card h2{font-size:18px;margin-bottom:10px}
+.safety-card ul{padding-left:18px;font-size:14px;line-height:22px;color:var(--text-secondary)}
+.safety-card li{margin-bottom:6px}
+.blocked-card{margin-top:16px;padding:20px}
+.blocked-card h2{font-size:18px;margin-bottom:10px}
+.blocked-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border-subtle)}
+.blocked-row .btn{padding:8px 14px}
 .muted{color:var(--text-muted);font-size:14px;line-height:20px}
 .picker{display:flex;flex-direction:column;gap:8px;margin:16px 0}
 .picker .mini-item{cursor:pointer}

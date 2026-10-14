@@ -149,7 +149,24 @@
   </div>
 </div>
 
-<!-- TRADE WINDOW MODAL — two-sided offer with dual confirmation -->
+<!-- REPORT MODAL -->
+<div id="reportModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Report <span id="reportTargetName"></span></h2>
+    <label>Reason
+      <select id="reportReason">
+        <option>Spam</option><option>Scam</option><option>Inappropriate content</option><option>Harassment</option><option>Other</option>
+      </select>
+    </label>
+    <label>Details (optional)
+      <textarea id="reportNote" rows="3" placeholder="Anything that helps us review this..."></textarea>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-ghost" id="reportCancel">Cancel</button>
+      <button class="btn btn-primary" id="reportSubmit">Submit Report</button>
+    </div>
+  </div>
+</div>
 <div id="tradeWindow" class="modal hidden">
   <div class="modal-card trade-window" id="tradeWindowContent"></div>
 </div>
