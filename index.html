@@ -37,9 +37,12 @@
   <section id="view-add" class="view">
     <h1 class="page-title">Add New Item</h1>
     <form id="addForm" class="card form-card">
-      <label>Image URL (optional)
-        <input id="fImage" type="url" placeholder="https://example.com/image.jpg">
-      </label>
+      <div class="photo-upload">
+        <div id="photoPreview" class="photo-preview hidden"><img id="photoPreviewImg" alt=""><button type="button" class="btn btn-ghost" id="photoRemove">Remove photo</button></div>
+        <label class="btn btn-outline photo-btn" for="fPhoto"><span class="material-symbols-outlined icon-inline">add</span> Take a photo or choose one</label>
+        <input id="fPhoto" type="file" accept="image/*" hidden>
+        <p class="muted">Snap a pic of your item — a photo helps it trade faster.</p>
+      </div>
       <label>Title *
         <input id="fTitle" type="text" placeholder="e.g., Vintage Camera" required>
       </label>

@@ -40,7 +40,13 @@ try { state = JSON.parse(localStorage.getItem(KEY)) || structuredClone(SEED); }
 catch { state = structuredClone(SEED); }
 // Migrate old offer statuses: pre-trade-window 'Accepted' means the trade completed.
 if (state.offers) state.offers.forEach(o => { if (o.status === 'Accepted') o.status = 'Completed'; });
-function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {
+    toast('Storage is full — that photo could not be saved. Try a smaller photo or remove an old listing.');
+  }
+}
 
 let currentCategory = 'All';
 let activeTab = 'received';
@@ -190,20 +196,62 @@ $('#tradeConfirm').addEventListener('click', () => {
 });
 
 // ---------- ADD ITEM ----------
+// Photo-first listing: snap a pic or pick one, compressed so it fits in
+// browser storage. No image URL needed.
+let pendingPhoto = null;
+function fileToCompressedDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1200;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+$('#fPhoto').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    pendingPhoto = await fileToCompressedDataURL(file);
+    $('#photoPreviewImg').src = pendingPhoto;
+    $('#photoPreview').classList.remove('hidden');
+  } catch {
+    toast('Could not read that photo — try another one.');
+  }
+});
+$('#photoRemove').addEventListener('click', () => {
+  pendingPhoto = null;
+  $('#fPhoto').value = '';
+  $('#photoPreview').classList.add('hidden');
+});
 $('#addForm').addEventListener('submit', e => {
   e.preventDefault();
   const title = $('#fTitle').value.trim();
   const desc = $('#fDesc').value.trim();
   const cat = $('#fCategory').value;
   const cond = $('#fCondition').value;
-  const img = $('#fImage').value.trim();
   if (!title || !desc || !cat || !cond) return;
   const id = Date.now();
   state.items.unshift({ id, title, desc, category: cat, condition: cond,
-    image: img || `https://picsum.photos/seed/${encodeURIComponent(title.toLowerCase().replace(/\s+/g, '-'))}/600/400`,
+    image: pendingPhoto || `https://picsum.photos/seed/${encodeURIComponent(title.toLowerCase().replace(/\s+/g, '-'))}/600/400`,
     owner: ME.name, ownerLoc: ME.location, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
   save();
   e.target.reset();
+  pendingPhoto = null;
+  $('#photoPreview').classList.add('hidden');
   toast('"' + title + '" is now listed!');
   currentCategory = 'All';
   nav('discover');
