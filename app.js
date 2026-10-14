@@ -6,8 +6,8 @@ const ME = { name: 'Alex Martinez', handle: '@alexm', location: 'San Francisco, 
 
 const SEED = {
   items: [
-    { id: 1, title: 'Vintage Polaroid Camera', desc: 'Classic Polaroid SX-70 in excellent working condition. Comes with original leather case.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/polaroid/600/400', owner: 'Sarah Chen', ownerLoc: 'Berkeley, CA', distance: 11, ownerRating: 4.9, ownerInitials: 'SC', listed: '3/9/2026' },
-    { id: 2, title: 'Mechanical Keyboard', desc: 'Custom mechanical keyboard with Cherry MX Blue switches. RGB backlit.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/keyboard/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', distance: 0, ownerRating: 4.8, ownerInitials: 'AM', listed: '3/9/2026' },
+    { id: 1, title: 'Vintage Polaroid Camera', desc: 'Classic Polaroid SX-70 in excellent working condition. Comes with original leather case.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/polaroid/600/400', owner: 'Sarah Chen', ownerLoc: 'Berkeley, CA', distance: 11, cashPrice: 120, ownerRating: 4.9, ownerInitials: 'SC', listed: '3/9/2026' },
+    { id: 2, title: 'Mechanical Keyboard', desc: 'Custom mechanical keyboard with Cherry MX Blue switches. RGB backlit.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/keyboard/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', distance: 0, cashPrice: 85, ownerRating: 4.8, ownerInitials: 'AM', listed: '3/9/2026' },
     { id: 3, title: 'Vinyl Record Collection', desc: 'Set of 20 classic rock vinyl records from the 70s and 80s. All in great condition.', category: 'Music', condition: 'Good', image: 'https://picsum.photos/seed/vinyl/600/400', owner: 'James Wilson', ownerLoc: 'Oakland, CA', distance: 8, ownerRating: 4.7, ownerInitials: 'JW', listed: '3/9/2026' },
     { id: 4, title: 'Camping Tent (4-person)', desc: 'Spacious 4-person tent with rainfly. Perfect for family camping trips.', category: 'Outdoor', condition: 'Like New', image: 'https://picsum.photos/seed/tent/600/400', owner: 'Emma Thompson', ownerLoc: 'Daly City, CA', distance: 4, ownerRating: 5.0, ownerInitials: 'ET', listed: '3/8/2026' },
     { id: 5, title: 'Vintage Typewriter', desc: 'Beautiful Royal typewriter from the 1950s. Fully functional with original ribbon.', category: 'Collectibles', condition: 'Good', image: 'https://picsum.photos/seed/typewriter/600/400', owner: 'Sarah Chen', ownerLoc: 'Berkeley, CA', distance: 11, ownerRating: 4.9, ownerInitials: 'SC', listed: '3/8/2026' },
@@ -15,8 +15,8 @@ const SEED = {
     { id: 7, title: 'Hiking Backpack', desc: '65L hiking backpack with rain cover. Great for multi-day treks.', category: 'Outdoor', condition: 'Good', image: 'https://picsum.photos/seed/backpack/600/400', owner: 'Emma Thompson', ownerLoc: 'Daly City, CA', distance: 4, ownerRating: 5.0, ownerInitials: 'ET', listed: '3/7/2026' },
     { id: 8, title: 'Bluetooth Speaker', desc: 'Portable waterproof Bluetooth speaker with 12-hour battery life.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/speaker/600/400', owner: 'Alex Martinez', ownerLoc: 'San Francisco, CA', distance: 0, ownerRating: 4.8, ownerInitials: 'AM', listed: '3/7/2026' },
     { id: 9, title: 'Mountain Bike', desc: '27-speed hardtail mountain bike, recently serviced. Great for Bay Area trails.', category: 'Outdoor', condition: 'Good', image: 'https://picsum.photos/seed/bike/600/400', owner: 'David Kim', ownerLoc: 'San Jose, CA', distance: 45, ownerRating: 4.6, ownerInitials: 'DK', listed: '3/6/2026' },
-    { id: 10, title: 'Espresso Machine', desc: 'Semi-automatic espresso machine with built-in grinder. Makes a great shot.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/espresso/600/400', owner: 'Priya Patel', ownerLoc: 'Marin, CA', distance: 14, ownerRating: 4.9, ownerInitials: 'PP', listed: '3/6/2026' },
-    { id: 11, title: '35mm Film Camera', desc: 'Classic 35mm SLR with 50mm lens. Light meter works, recently serviced.', category: 'Electronics', condition: 'Good', image: 'https://picsum.photos/seed/film/600/400', owner: 'Maria Lopez', ownerLoc: 'San Francisco, CA', distance: 2, ownerRating: 4.8, ownerInitials: 'ML', listed: '3/5/2026' },
+    { id: 10, title: 'Espresso Machine', desc: 'Semi-automatic espresso machine with built-in grinder. Makes a great shot.', category: 'Electronics', condition: 'Like New', image: 'https://picsum.photos/seed/espresso/600/400', owner: 'Priya Patel', ownerLoc: 'Marin, CA', distance: 14, cashPrice: 150, ownerRating: 4.9, ownerInitials: 'PP', listed: '3/6/2026' },
+    { id: 11, title: '35mm Film Camera', desc: 'Classic 35mm SLR with 50mm lens. Light meter works, recently serviced.', category: 'Electronics', condition: 'Good', image: 'https://picsum.photos/seed/film/600/400', owner: 'Maria Lopez', ownerLoc: 'San Francisco, CA', distance: 2, cashPrice: 95, ownerRating: 4.8, ownerInitials: 'ML', listed: '3/5/2026' },
   ],
   offers: [
     { id: 1, from: 'Sarah Chen', date: '3/10/2026', status: 'Pending', direction: 'received', theirItemId: 1, myItemId: 2, message: 'Hi! I love your mechanical keyboard. Would you be interested in trading for my vintage Polaroid camera?' },
@@ -95,7 +95,7 @@ function renderHome() {
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
   const offerRow = o => {
-    const theirItem = itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
+    const theirItem = o.type === 'cash' ? itemById(o.theirItemId) : itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
     return `<div class="home-offer" data-offer="${o.id}">
       ${theirItem ? `<img src="${esc(theirItem.image)}" alt="">` : ''}
       <div class="home-offer-text"><div class="home-offer-title">${esc(theirItem ? theirItem.title : 'Trade offer')}</div>
@@ -148,6 +148,7 @@ function cardHTML(i) {
     <div class="card-body">
       <div class="card-title-row"><span class="card-title">${esc(i.title)}</span><span class="badge">${esc(i.condition)}</span></div>
       <p class="card-desc">${esc(i.desc)}</p>
+      ${i.cashPrice ? `<div class="cash-note">Also accepts $${esc(i.cashPrice)} cash</div>` : ''}
       <div class="owner-row">
         <span class="avatar">${esc(i.ownerInitials)}</span>
         <div class="owner-meta"><div class="owner-name">${esc(i.owner)}</div><div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}${i.distance == null ? '' : (i.distance === 0 ? ' · Your listing' : ' · ' + esc(i.distance) + ' mi away')}</div></div>
@@ -176,9 +177,23 @@ function openDetail(id) {
     </div>
     ${mine
       ? `<p class="muted">This is your item.</p>`
-      : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>`}`;
+      : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
+      ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
+      <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p>
+      <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}`}`;
   const btn = $('#proposeBtn');
   if (btn) btn.addEventListener('click', () => openTradeModal(id));
+  const cashBtn = $('#cashOfferBtn');
+  if (cashBtn) cashBtn.addEventListener('click', () => $('#cashConfirm').classList.remove('hidden'));
+  const cashCancel = $('#cashCancel');
+  if (cashCancel) cashCancel.addEventListener('click', () => $('#cashConfirm').classList.add('hidden'));
+  const cashSend = $('#cashSend');
+  if (cashSend) cashSend.addEventListener('click', () => {
+    state.offers.push({ id: Date.now(), from: ME.name, date: new Date().toLocaleDateString('en-US'), status: 'Pending', direction: 'sent', type: 'cash', cashAmount: i.cashPrice, theirItemId: id, myItemId: null, message: `Hi! I'd like to offer $${i.cashPrice} cash for your ${i.title}.` });
+    save();
+    toast(`Cash offer of $${i.cashPrice} sent to ${i.owner}!`);
+    nav('trades');
+  });
   nav('detail');
 }
 
@@ -256,11 +271,12 @@ $('#addForm').addEventListener('submit', e => {
   const desc = $('#fDesc').value.trim();
   const cat = $('#fCategory').value;
   const cond = $('#fCondition').value;
+  const cash = parseFloat($('#fCash').value);
   if (!title || !desc || !cat || !cond) return;
   const id = Date.now();
   state.items.unshift({ id, title, desc, category: cat, condition: cond,
     image: pendingPhoto || `https://picsum.photos/seed/${encodeURIComponent(title.toLowerCase().replace(/\s+/g, '-'))}/600/400`,
-    owner: ME.name, ownerLoc: ME.location, distance: 0, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
+    owner: ME.name, ownerLoc: ME.location, distance: 0, cashPrice: Number.isFinite(cash) && cash > 0 ? cash : null, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
   save();
   e.target.reset();
   pendingPhoto = null;
@@ -292,13 +308,16 @@ function renderTrades() {
 function offerHTML(o) {
   const theirs = itemById(o.theirItemId);
   const mine = itemById(o.myItemId);
+  const sides = o.type === 'cash'
+    ? `<div class="trade-sides"><div><div class="side-label">Cash offer</div><div class="mini-item"><div><div class="mi-title">$${esc(o.cashAmount)} cash</div><div class="mi-sub">For ${theirs ? esc(theirs.title) : 'item'}</div></div></div></div></div>`
+    : `<div class="trade-sides">
+      <div><div class="side-label">They offer</div><div class="mini-item"><img src="${theirs ? esc(theirs.image) : ''}"><div><div class="mi-title">${theirs ? esc(theirs.title) : 'Item removed'}</div><div class="mi-sub">${theirs ? esc(theirs.condition) : ''}</div></div></div></div>
+      <div><div class="side-label">For your item</div><div class="mini-item"><img src="${mine ? esc(mine.image) : ''}"><div><div class="mi-title">${mine ? esc(mine.title) : 'Item removed'}</div><div class="mi-sub">${mine ? esc(mine.condition) : ''}</div></div></div></div>
+    </div>`;
   return `<div class="offer-card" data-id="${o.id}">
     <div class="offer-top"><span class="offer-from">${o.direction === 'received' ? 'From ' + esc(o.from) : 'To ' + esc(theirs ? theirs.owner : '')}</span>
     <span><span class="status ${statusClass(o.status)}">${esc(o.status)}</span> <span class="offer-date">${esc(o.date)}</span></span></div>
-    <div class="trade-sides">
-      <div><div class="side-label">They offer</div><div class="mini-item"><img src="${theirs ? esc(theirs.image) : ''}"><div><div class="mi-title">${theirs ? esc(theirs.title) : 'Item removed'}</div><div class="mi-sub">${theirs ? esc(theirs.condition) : ''}</div></div></div></div>
-      <div><div class="side-label">For your item</div><div class="mini-item"><img src="${mine ? esc(mine.image) : ''}"><div><div class="mi-title">${mine ? esc(mine.title) : 'Item removed'}</div><div class="mi-sub">${mine ? esc(mine.condition) : ''}</div></div></div></div>
-    </div>
+    ${sides}
     <p class="offer-msg">${esc(o.message)}</p><p class="offer-tap-hint">Tap to review this trade <span class="material-symbols-outlined icon-inline">arrow_forward</span></p></div>`;
 }
 function tradeItemCard(item, fallback) {
@@ -312,10 +331,21 @@ function openTradeWindow(id, step) {
   const mine = itemById(o.myItemId);
   const otherName = o.direction === 'received' ? o.from : (theirs ? theirs.owner : 'Trader');
   const box = $('#tradeWindowContent');
+  const cashCard = o.type === 'cash'
+    ? `<div class="mini-item"><div><div class="mi-title">$${esc(o.cashAmount)} cash</div><div class="mi-sub">Cash offer</div></div></div>`
+    : null;
+  // For cash offers, theirItemId is the item being bought; one side is cash.
+  const cashItem = o.type === 'cash' ? theirs : null;
+  const myPaneCard = o.type === 'cash'
+    ? (o.direction === 'received' ? tradeItemCard(cashItem, 'Item removed') : cashCard)
+    : tradeItemCard(mine, 'Item removed');
+  const theirPaneCard = o.type === 'cash'
+    ? (o.direction === 'received' ? cashCard : tradeItemCard(cashItem, 'Item removed'))
+    : tradeItemCard(theirs, 'Item removed');
   const panes = `<div class="trade-panes">
-    <div class="trade-pane"><div class="side-label">You're offering</div>${tradeItemCard(mine, 'Item removed')}</div>
+    <div class="trade-pane"><div class="side-label">You're offering</div>${myPaneCard}</div>
     <div class="trade-divider"><span class="material-symbols-outlined">swap_horiz</span></div>
-    <div class="trade-pane"><div class="side-label">They're offering</div>${tradeItemCard(theirs, 'Item removed')}</div>
+    <div class="trade-pane"><div class="side-label">They're offering</div>${theirPaneCard}</div>
   </div>`;
   const closeBtn = `<button class="btn btn-ghost" id="twClose">Close</button>`;
   if (o.status === 'Completed') {
