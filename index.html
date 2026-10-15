@@ -71,47 +71,37 @@
 
   <!-- ADD ITEM -->
   <section id="view-add" class="view">
-    <h1 class="page-title">Add New Item</h1>
-    <form id="addForm" class="card form-card">
-      <div class="photo-upload">
-        <div id="photoPreview" class="photo-preview hidden"><img id="photoPreviewImg" alt=""><button type="button" class="btn btn-ghost" id="photoRemove">Remove photo</button></div>
-        <label class="btn btn-outline photo-btn" for="fPhoto"><span class="material-symbols-outlined icon-inline">add</span> Take a photo or choose one</label>
-        <input id="fPhoto" type="file" accept="image/*" hidden>
-        <p class="muted">Snap a pic of your item — a photo helps it trade faster.</p>
-      </div>
-      <label>Title *
-        <input id="fTitle" type="text" placeholder="e.g., Vintage Camera" required>
+  <h1 class="add-title">List an item</h1>
+  <p class="add-sub">Snap it, describe it, trade it.</p>
+  <form id="addForm" class="add-form">
+    <div class="photo-hero" id="photoHero">
+      <label class="photo-empty" for="fPhoto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        <span>Add photos</span>
+        <small>Your item leads — show it well</small>
       </label>
-      <label>Description *
-        <textarea id="fDesc" rows="3" placeholder="Describe your item in detail..." required></textarea>
-      </label>
-      <div class="form-row">
-        <label>Category *
-          <select id="fCategory" required>
-            <option value="">Select a category</option>
-            <option>Electronics</option><option>Music</option><option>Outdoor</option>
-            <option>Collectibles</option><option>Fashion</option>
-          </select>
-        </label>
-        <label>Condition *
-          <select id="fCondition" required>
-            <option value="">Select condition</option>
-            <option>Like New</option><option>Good</option><option>Fair</option>
-          </select>
-        </label>
-      </div>
-      <label>Cash price (optional)
-        <input id="fCash" type="number" min="0" step="0.01" placeholder="e.g., 50">
-      </label>
-      <p class="muted">Leave blank for trade-only. Trading is always the main option — cash is just a backup.</p>
-      <div class="form-actions">
-        <button type="button" class="btn btn-ghost" data-nav="home">Cancel</button>
-        <button type="submit" class="btn btn-primary">Add Item</button>
-      </div>
-    </form>
-  </section>
+      <img id="photoPreviewImg" alt="">
+      <button type="button" id="photoRemove" class="photo-remove" aria-label="Remove photo">×</button>
+      <input id="fPhoto" type="file" accept="image/*" hidden>
+    </div>
+    <div class="field"><label for="fTitle">Title</label><input id="fTitle" type="text" placeholder="e.g. Vintage film camera" required></div>
+    <div class="field"><label for="fDesc">Description</label><textarea id="fDesc" rows="3" placeholder="Condition, story, what&apos;s included…" required></textarea></div>
+    <div class="field-row">
+      <div class="field"><label for="fCategory">Category</label><select id="fCategory" required>
+        <option value="">Select</option><option>Electronics</option><option>Music</option><option>Outdoor</option><option>Collectibles</option><option>Fashion</option>
+      </select></div>
+      <div class="field"><label for="fCondition">Condition</label><select id="fCondition" required>
+        <option value="">Select</option><option>Like New</option><option>Good</option><option>Fair</option>
+      </select></div>
+    </div>
+    <div class="field"><label for="fCash">Cash price <span class="opt">(optional)</span></label><div class="cash-wrap"><i>$</i><input id="fCash" type="number" min="0" step="0.01" placeholder="0"></div></div>
+    <p class="fee-note">Item trades are always free. A 5% fee applies only to cash sales.</p>
+    <button type="submit" class="btn btn-primary add-cta">List item</button>
+    <button type="button" class="add-cancel" data-nav="home">Cancel</button>
+  </form>
+</section>
 
-  <!-- TRADES -->
+<!-- TRADES -->
   <section id="view-trades" class="view">
     <h1 class="page-title">Trade Offers</h1>
     <div class="tabs">

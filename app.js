@@ -439,7 +439,7 @@ $('#fPhoto').addEventListener('change', async e => {
   try {
     pendingPhoto = await fileToCompressedDataURL(file);
     $('#photoPreviewImg').src = pendingPhoto;
-    $('#photoPreview').classList.remove('hidden');
+    $('#photoHero').classList.add('has-photo');
   } catch {
     toast('Could not read that photo — try another one.');
   }
@@ -447,7 +447,7 @@ $('#fPhoto').addEventListener('change', async e => {
 $('#photoRemove').addEventListener('click', () => {
   pendingPhoto = null;
   $('#fPhoto').value = '';
-  $('#photoPreview').classList.add('hidden');
+  $('#photoHero').classList.remove('has-photo');
 });
 $('#addForm').addEventListener('submit', e => {
   e.preventDefault();
@@ -465,7 +465,7 @@ $('#addForm').addEventListener('submit', e => {
   e.target.reset();
   const newImg = pendingPhoto || 'images/no-photo.jpg';
   pendingPhoto = null;
-  $('#photoPreview').classList.add('hidden');
+  $('#photoHero').classList.remove('has-photo');
   currentCategory = 'All';
   // Mercari-style celebration: your listing is live.
   lastListedId = id;
