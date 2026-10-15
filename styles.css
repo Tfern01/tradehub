@@ -73,7 +73,7 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .badge{font-size:12px;font-weight:500;background:var(--bg-input);border-radius:6px;padding:4px 8px;white-space:nowrap}
 .card-desc{font-size:14px;color:var(--text-secondary);line-height:20px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px}
 .owner-row{display:flex;align-items:center;gap:8px;justify-content:flex-start}
-.avatar{width:28px;height:28px;border-radius:50%;background:#E8E8ED;color:#3A3A3C;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.avatar{width:28px;height:28px;border-radius:50%;background:#E8E8ED;color:#3A3A3C;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;text-transform:uppercase}
 .avatar.lg{width:64px;height:64px;font-size:20px}
 .owner-meta{flex:1;min-width:0}
 .owner-name{font-size:12px;font-weight:600}
