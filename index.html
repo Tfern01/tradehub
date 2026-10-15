@@ -177,6 +177,24 @@
   <div class="modal-card trade-window" id="tradeWindowContent"></div>
 </div>
 
+<!-- LISTING SUCCESS (Mercari-style celebration) -->
+<div id="listSuccessModal" class="modal hidden">
+  <div class="modal-card success-card">
+    <button class="modal-x" id="successClose" aria-label="Close">×</button>
+    <div class="success-check"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.7 2.7L16 9.5"/></svg></div>
+    <h2>Your item is live!</h2>
+    <p class="muted">Nice — it's now visible to traders near you.</p>
+    <div class="success-item"><img id="successImg" alt=""><div class="success-item-text"><b id="successTitle"></b><span class="muted" id="successSub"></span></div></div>
+    <div class="form-actions success-actions">
+      <button class="btn btn-primary" id="successView">View listing</button>
+      <div class="success-row">
+        <button class="btn btn-outline" id="successAgain">List another</button>
+        <button class="btn btn-outline" id="successShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.7 6.8-4.4M8.6 13.3l6.8 4.4"/></svg> Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <nav class="bottomnav">

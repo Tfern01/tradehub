@@ -463,11 +463,16 @@ $('#addForm').addEventListener('submit', e => {
     owner: ME.name, ownerLoc: ME.location, distance: 0, cashPrice: Number.isFinite(cash) && cash > 0 ? cash : null, ownerRating: ME.rating, ownerInitials: ME.initials || initialsOf(ME.name), listed: new Date().toLocaleDateString('en-US') });
   save();
   e.target.reset();
+  const newImg = pendingPhoto || 'images/no-photo.jpg';
   pendingPhoto = null;
   $('#photoPreview').classList.add('hidden');
-  toast('"' + title + '" is now listed!');
   currentCategory = 'All';
-  nav('discover');
+  // Mercari-style celebration: your listing is live.
+  lastListedId = id;
+  $('#successImg').src = newImg;
+  $('#successTitle').textContent = title;
+  $('#successSub').textContent = cat + ' · ' + cond;
+  $('#listSuccessModal').classList.remove('hidden');
 });
 
 // ---------- SAFETY ----------
@@ -486,6 +491,25 @@ function openReport(name) {
   $('#reportModal').classList.remove('hidden');
 }
 $('#reportCancel').addEventListener('click', () => $('#reportModal').classList.add('hidden'));
+let lastListedId = null;
+function hideSuccess() { $('#listSuccessModal').classList.add('hidden'); }
+$('#successView').addEventListener('click', () => { hideSuccess(); nav('profile', false); openDetail(lastListedId); });
+$('#successAgain').addEventListener('click', () => { hideSuccess(); nav('add'); });
+$('#successClose').addEventListener('click', () => { hideSuccess(); nav('profile'); });
+$('#listSuccessModal').addEventListener('click', e => { if (e.target.id === 'listSuccessModal') { hideSuccess(); nav('profile'); } });
+$('#successShare').addEventListener('click', async () => {
+  const item = itemById(lastListedId);
+  const shareText = item ? `Check out "${item.title}" on TradeHub — trade locally!` : 'Check out TradeHub — trade locally!';
+  const shareUrl = location.origin + location.pathname;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'TradeHub', text: shareText, url: shareUrl }); } catch (e) { /* dismissed */ }
+  } else if (navigator.clipboard) {
+    try { await navigator.clipboard.writeText(shareText + ' ' + shareUrl); toast('Link copied — share it anywhere!'); }
+    catch (e) { toast('Sharing is not available here.'); }
+  } else {
+    toast('Sharing is not available here.');
+  }
+});
 $('#reportSubmit').addEventListener('click', () => {
   if (!reportTarget) return;
   state.reports.push({ target: reportTarget, reason: $('#reportReason').value, note: $('#reportNote').value.trim(), from: ME.name, date: new Date().toLocaleDateString('en-US') });
