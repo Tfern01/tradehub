@@ -49,6 +49,7 @@ if (!state.ratings) state.ratings = [];
 if (!state.blocked) state.blocked = [];
 if (!state.reports) state.reports = [];
 if (!state.saved) state.saved = [];
+if (!state.interests) state.interests = [];
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
@@ -216,27 +217,18 @@ function traderLevel(done) {
 }
 const completedTrades = () => state.offers.filter(o => o.status === 'Completed').length;
 
-// Recent community activity for Home: completed trades + fresh listings.
-function buildActivity() {
-  const acts = [];
-  state.offers.filter(o => o.status === 'Completed').slice(-2).forEach(o => {
-    const item = itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
-    acts.push({ name: o.from, text: 'completed a trade' + (item ? ' · <b>' + esc(item.title) + '</b>' : ''), sub: o.date, cat: item ? item.category : null });
-  });
-  state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).slice(0, 2).forEach(i => {
-    acts.push({ name: i.owner, text: 'listed <b>' + esc(i.title) + '</b>', sub: i.category + (i.distance == null ? '' : ' · ' + i.distance + ' mi'), cat: i.category });
-  });
-  return acts.slice(0, 3);
-}
 
 // Personalized hub: pending offers, unread messages, categories,
 // nearby items, and community activity. Browse lives behind See all.
 function renderHome() {
   const mine = state.items.filter(i => i.owner === ME.name);
-  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
+  // YouTube-style interest tags: matching items rank first in the feed.
+  const tags = state.interests.map(t => t.toLowerCase());
+  const matchesInterests = i => tags.length > 0 && tags.some(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t));
+  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner))
+    .sort((a, b) => (matchesInterests(b) - matchesInterests(a)) || ((a.distance ?? 999) - (b.distance ?? 999))).slice(0, 4);
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
-  const activity = buildActivity();
   const offerRow = o => {
     const theirItem = o.type === 'cash' ? itemById(o.theirItemId) : itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
     return `<div class="home-offer" data-offer="${o.id}">
@@ -250,7 +242,6 @@ function renderHome() {
     const n = state.items.filter(i => i.category === c.name && !i.traded && !state.blocked.includes(i.owner)).length;
     return `<button class="cat-tile" data-cat="${c.name}"><span class="tic" style="background:${c.bg};color:${c.fg}">${c.svg}</span><b>${c.name}</b><span>${n} item${n === 1 ? '' : 's'}</span></button>`;
   };
-  const actRow = a => `<div class="act-row"><span class="avatar" style="background:${faceColor(a.name)};color:#fff">${esc(initialsOf(a.name))}</span><p><b>${esc(a.name)}</b> ${a.text}${a.cat ? `<span class="act-dot" style="background:${catColor(a.cat)}"></span>` : ''}<span class="t">${esc(a.sub)}</span></p></div>`;
   $('#homeContent').innerHTML = `
     <div class="home-welcome"><h1>Welcome back, Alex</h1></div>
     ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
@@ -259,10 +250,28 @@ function renderHome() {
       return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
     }).join('')}</div>` : ''}
     <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
-    <div class="home-section"><div class="home-section-head"><h2>Near you</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="grid">${nearby.map(cardHTML).join('')}</div></div>
-    ${activity.length ? `<div class="home-section"><div class="home-section-head"><h2>Activity</h2></div><div class="activity-card">${activity.map(actRow).join('')}</div></div>` : ''}`;
+    <div class="home-section"><div class="home-section-head"><h2>Your interests</h2></div>
+      <div class="interest-tags">
+        ${state.interests.map(t => `<span class="interest-tag">${esc(t)}<button data-rmtag="${esc(t)}" aria-label="Remove interest">\u00d7</button></span>`).join('')}
+        <button class="interest-add" id="addInterestBtn"><span class="material-symbols-outlined icon-inline">add</span> Add</button>
+      </div>
+      <p class="muted interests-hint">Tell us what you're hunting for — matching items will surface first in your feed.</p>
+    </div>
+    <div class="home-section"><div class="home-section-head"><h2>Near you</h2></div><div class="grid" id="nearGrid">${nearby.map(cardHTML).join('')}</div>
+      <div class="see-more-wrap"><button class="btn btn-outline see-more" data-nav="discover">See More</button></div></div>`;
   $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
   $$('#homeContent [data-cat]').forEach(el => el.addEventListener('click', () => { currentCategory = el.dataset.cat; nav('discover'); }));
+  $$('#homeContent [data-rmtag]').forEach(b => b.addEventListener('click', () => {
+    state.interests = state.interests.filter(t => t !== b.dataset.rmtag);
+    save(); renderHome();
+  }));
+  const addBtn = $('#addInterestBtn');
+  if (addBtn) addBtn.addEventListener('click', () => { $('#interestInput').value = ''; $('#interestModal').classList.remove('hidden'); setTimeout(() => $('#interestInput').focus(), 60); });
+  // "For you" badges on interest-matched cards
+  $$('#nearGrid .card').forEach(c => {
+    const item = itemById(+c.dataset.id);
+    if (item && matchesInterests(item)) c.insertAdjacentHTML('afterbegin', '<span class="foryou-badge">For you</span>');
+  });
   $$('#homeContent .home-offer').forEach(el => el.addEventListener('click', () => nav('trades')));
   $$('#homeContent .home-msg').forEach(el => el.addEventListener('click', () => { activeConvo = +el.dataset.convo; currentFolder = 'inbox'; nav('messages'); }));
   $$('#homeContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
@@ -497,6 +506,20 @@ $('#successView').addEventListener('click', () => { hideSuccess(); nav('profile'
 $('#successAgain').addEventListener('click', () => { hideSuccess(); nav('add'); });
 $('#successClose').addEventListener('click', () => { hideSuccess(); nav('profile'); });
 $('#listSuccessModal').addEventListener('click', e => { if (e.target.id === 'listSuccessModal') { hideSuccess(); nav('profile'); } });
+const addInterest = () => {
+  const v = $('#interestInput').value.trim();
+  if (v && !state.interests.some(t => t.toLowerCase() === v.toLowerCase()) && state.interests.length < 12) {
+    state.interests.push(v);
+    save();
+  }
+  $('#interestInput').value = '';
+  $('#interestModal').classList.add('hidden');
+  if (currentView === 'home') renderHome();
+};
+$('#interestAdd').addEventListener('click', addInterest);
+$('#interestInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } });
+$('#interestClose').addEventListener('click', () => $('#interestModal').classList.add('hidden'));
+$('#interestModal').addEventListener('click', e => { if (e.target.id === 'interestModal') $('#interestModal').classList.add('hidden'); });
 $('#successShare').addEventListener('click', async () => {
   const item = itemById(lastListedId);
   const shareText = item ? `Check out "${item.title}" on TradeHub — trade locally!` : 'Check out TradeHub — trade locally!';
