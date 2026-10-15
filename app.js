@@ -114,6 +114,8 @@ function nav(view) {
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#view-' + view).classList.add('active');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === view));
+  const ha = $('#headerAvatar');
+  if (ha) ha.textContent = ME.initials || initialsOf(ME.name);
   window.scrollTo(0, 0);
   if (view === 'home') renderHome();
   if (view === 'discover') renderBrowse();
@@ -167,13 +169,63 @@ $('#signupForm').addEventListener('submit', async e => {
 $('#demoSignin').addEventListener('click', () => signInAs(DEMO_ACCOUNT));
 
 // ---------- HOME ----------
-// Personalized hub: your activity, pending offers, unread messages,
-// nearby items, and your listings. Discover is the full catalog.
+// ---------- CATEGORY SYSTEM ----------
+// Each category owns a color (tinted tile, saturated icon). Frequent users
+// read the color before the word.
+const CATS = [
+  { name: 'Electronics', bg: '#E0F2FE', fg: '#0284C7', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="12" rx="2"/><path d="M8 20h8"/></svg>' },
+  { name: 'Music', bg: '#EDE9FE', fg: '#7C3AED', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V6l10-2v11"/><circle cx="7" cy="18" r="2.5"/><circle cx="17" cy="15" r="2.5"/></svg>' },
+  { name: 'Outdoor', bg: '#D1FAE5', fg: '#059669', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="17" r="3.5"/><circle cx="18" cy="17" r="3.5"/><path d="M6 17l3.5-7h5L18 17"/></svg>' },
+  { name: 'Collectibles', bg: '#FEF3C7', fg: '#D97706', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="3.5"/></svg>' },
+  { name: 'Fashion', bg: '#FCE7F3', fg: '#DB2777', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8h15l-1.5 12h-12z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>' },
+];
+const catColor = name => { const c = CATS.find(c => c.name === name); return c ? c.fg : '#86868B'; };
+const initialsOf = name => String(name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+// Avatar face colors, hashed from the name so each trader keeps theirs.
+const AV_COLORS = ['#7C3AED', '#059669', '#D97706', '#DB2777', '#0284C7', '#EA580C'];
+function faceColor(name) { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
+
+// ---------- LEVELS & GOALS ----------
+// Progression for the account: levels and goals.
+const LEVELS = [
+  { n: 1, name: 'New Trader', at: 0 },
+  { n: 2, name: 'Getting Going', at: 1 },
+  { n: 3, name: 'Seasoned Trader', at: 3 },
+  { n: 4, name: 'Trusted Trader', at: 6 },
+  { n: 5, name: 'Neighborhood Pro', at: 10 },
+  { n: 6, name: 'Trade Master', at: 15 },
+  { n: 7, name: 'Local Legend', at: 25 },
+];
+function traderLevel(done) {
+  let cur = LEVELS[0], next = null;
+  for (const l of LEVELS) { if (done >= l.at) cur = l; else { next = l; break; } }
+  const pct = next ? Math.min(100, Math.round((done - cur.at) / (next.at - cur.at) * 100)) : 100;
+  return { cur, next, pct };
+}
+const completedTrades = () => state.offers.filter(o => o.status === 'Completed').length;
+
+// Recent community activity for Home: completed trades + fresh listings.
+function buildActivity() {
+  const acts = [];
+  state.offers.filter(o => o.status === 'Completed').slice(-2).forEach(o => {
+    const item = itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
+    acts.push({ name: o.from, text: 'completed a trade' + (item ? ' · <b>' + esc(item.title) + '</b>' : ''), sub: o.date, cat: item ? item.category : null });
+  });
+  state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).slice(0, 2).forEach(i => {
+    acts.push({ name: i.owner, text: 'listed <b>' + esc(i.title) + '</b>', sub: i.category + (i.distance == null ? '' : ' · ' + i.distance + ' mi'), cat: i.category });
+  });
+  return acts.slice(0, 3);
+}
+
+// Personalized hub: pending offers, unread messages, categories,
+// nearby items, and community activity. Browse lives behind See all.
 function renderHome() {
   const mine = state.items.filter(i => i.owner === ME.name);
   const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999)).slice(0, 4);
   const pending = state.offers.filter(o => o.status === 'Pending');
   const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
+  const activity = buildActivity();
   const offerRow = o => {
     const theirItem = o.type === 'cash' ? itemById(o.theirItemId) : itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
     return `<div class="home-offer" data-offer="${o.id}">
@@ -183,21 +235,23 @@ function renderHome() {
       <span class="badge">${esc(o.status)}</span>
     </div>`;
   };
+  const tile = c => {
+    const n = state.items.filter(i => i.category === c.name && !i.traded && !state.blocked.includes(i.owner)).length;
+    return `<button class="cat-tile" data-cat="${c.name}"><span class="tic" style="background:${c.bg};color:${c.fg}">${c.svg}</span><b>${c.name}</b><span>${n} item${n === 1 ? '' : 's'}</span></button>`;
+  };
+  const actRow = a => `<div class="act-row"><span class="avatar" style="background:${faceColor(a.name)};color:#fff">${esc(initialsOf(a.name))}</span><p><b>${esc(a.name)}</b> ${a.text}${a.cat ? `<span class="act-dot" style="background:${catColor(a.cat)}"></span>` : ''}<span class="t">${esc(a.sub)}</span></p></div>`;
   $('#homeContent').innerHTML = `
-    <div class="home-welcome"><h1>Welcome back, Alex</h1><p>Here's what's happening with your trades.</p></div>
-    <div class="home-stats">
-      <div class="home-stat" data-nav="profile"><b>${mine.length}</b><span>Your listings</span></div>
-      <div class="home-stat" data-nav="trades"><b>${pending.length}</b><span>Pending offers</span></div>
-      <div class="home-stat" data-nav="messages"><b>${unreadConvos.reduce((n, c) => n + (c.unread || 0), 0)}</b><span>Unread messages</span></div>
-    </div>
+    <div class="home-welcome"><h1>Welcome back, Alex</h1></div>
     ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
     ${unreadConvos.length ? `<div class="home-section"><div class="home-section-head"><h2>Unread messages</h2><button class="see-all" data-nav="messages">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${unreadConvos.map(c => {
       const last = c.messages[c.messages.length - 1];
       return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
     }).join('')}</div>` : ''}
+    <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
     <div class="home-section"><div class="home-section-head"><h2>Near you</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="grid">${nearby.map(cardHTML).join('')}</div></div>
-    ${mine.length ? `<div class="home-section"><div class="home-section-head"><h2>Your listings</h2><button class="see-all" data-nav="profile">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="grid">${mine.slice(0, 4).map(cardHTML).join('')}</div></div>` : ''}`;
+    ${activity.length ? `<div class="home-section"><div class="home-section-head"><h2>Activity</h2></div><div class="activity-card">${activity.map(actRow).join('')}</div></div>` : ''}`;
   $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+  $$('#homeContent [data-cat]').forEach(el => el.addEventListener('click', () => { currentCategory = el.dataset.cat; nav('discover'); }));
   $$('#homeContent .home-offer').forEach(el => el.addEventListener('click', () => nav('trades')));
   $$('#homeContent .home-msg').forEach(el => el.addEventListener('click', () => { activeConvo = +el.dataset.convo; currentFolder = 'inbox'; nav('messages'); }));
   $$('#homeContent .card').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
@@ -708,6 +762,9 @@ function renderMessages() {
 // ---------- PROFILE ----------
 function renderProfile() {
   const mine = state.items.filter(i => i.owner === ME.name);
+  const done = completedTrades();
+  const lv = traderLevel(done);
+  const goalItems = Math.min(mine.length, 5);
   $('#profileContent').innerHTML = `
     <div class="profile-card">
       <span class="avatar lg">${ME.initials}</span>
@@ -723,6 +780,11 @@ function renderProfile() {
         <p class="bio" style="margin-top:12px">${ME.bio}</p>
         <button class="btn btn-outline" id="signOutBtn" style="margin-top:16px">Sign out</button>
       </div>
+    </div>
+    <div class="level-card"><div class="level-top"><b>Level ${lv.cur.n} · ${lv.cur.name}</b><span class="lvl-pill">LV ${lv.cur.n}</span></div><div class="progress"><i style="width:${lv.pct}%"></i></div><p class="muted">${lv.next ? `${lv.next.at - done} more trade${lv.next.at - done === 1 ? '' : 's'} to reach <b>Level ${lv.next.n} · ${lv.next.name}</b>` : 'Max level — local legend status.'}</p></div>
+    <div class="goal-card"><h2>Goals</h2>
+      <div class="goal-row"><div class="gr-top"><b>List 5 items</b><span>${goalItems} of 5</span></div><div class="progress sm"><i style="width:${goalItems / 5 * 100}%"></i></div></div>
+      <div class="goal-row"><div class="gr-top"><b>50 trades in October</b><span>${done} so far · nearby traders</span></div><div class="progress sm"><i class="goal" style="width:${Math.min(100, done / 50 * 100)}%"></i></div></div>
     </div>
     <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
     <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>

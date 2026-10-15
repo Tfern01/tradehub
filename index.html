@@ -10,7 +10,10 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="logo"><span class="logo-icon"><span class="material-symbols-outlined">swap_horiz</span></span><span class="logo-word">TradeHub</span></div>
-    <button class="header-msg" data-nav="messages" aria-label="Messages"><span class="material-symbols-outlined">mail</span><span id="msgBadge" class="nav-badge hidden">0</span></button>
+    <div class="header-actions">
+      <button class="header-msg" data-nav="messages" aria-label="Messages"><span class="material-symbols-outlined">mail</span><span id="msgBadge" class="nav-badge hidden">0</span></button>
+      <button class="header-avatar" data-nav="profile" aria-label="Profile"><span class="avatar" id="headerAvatar">A</span></button>
+    </div>
   </div>
 </header>
 
@@ -176,10 +179,8 @@
 
 <nav class="bottomnav">
   <button class="nav-btn active" data-nav="home"><span class="material-symbols-outlined nav-icon">home</span><span>Home</span></button>
-  <button class="nav-btn" data-nav="discover"><span class="material-symbols-outlined nav-icon">search</span><span>Discover</span></button>
   <button class="nav-btn nav-center" data-nav="add"><span class="nav-center-icon"><span class="material-symbols-outlined">add</span></span><span>List Item</span></button>
   <button class="nav-btn" data-nav="trades"><span class="material-symbols-outlined nav-icon">swap_horiz</span><span>Trades</span></button>
-  <button class="nav-btn" data-nav="profile"><span class="material-symbols-outlined nav-icon">person</span><span>Profile</span></button>
 </nav>
 
 <script src="app.js"></script>
