@@ -108,8 +108,12 @@ function toast(msg) {
   setTimeout(() => t.classList.add('hidden'), 2600);
 }
 
-function nav(view) {
+let currentView = 'home';
+const navStack = [];
+function nav(view, push = true) {
   if (view !== 'auth' && !getSessionAccount()) view = 'auth';
+  if (push && currentView && currentView !== view && currentView !== 'auth' && view !== 'auth') navStack.push(currentView);
+  currentView = view;
   document.body.classList.toggle('on-auth', view === 'auth');
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#view-' + view).classList.add('active');
@@ -124,6 +128,13 @@ function nav(view) {
   if (view === 'profile') renderProfile();
 }
 $$('[data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+// Context-aware back: returns to wherever you came from.
+function goBack() {
+  let v;
+  do { v = navStack.pop(); } while (v === currentView && navStack.length);
+  nav(v || 'home', false);
+}
+$('#detailBack').addEventListener('click', goBack);
 
 // ---------- AUTH ----------
 $$('.auth-tab').forEach(t => t.addEventListener('click', () => {
@@ -449,7 +460,7 @@ $('#addForm').addEventListener('submit', e => {
   const id = Date.now();
   state.items.unshift({ id, title, desc, category: cat, condition: cond,
     image: pendingPhoto || 'images/no-photo.jpg',
-    owner: ME.name, ownerLoc: ME.location, distance: 0, cashPrice: Number.isFinite(cash) && cash > 0 ? cash : null, ownerRating: ME.rating, ownerInitials: 'AM', listed: new Date().toLocaleDateString('en-US') });
+    owner: ME.name, ownerLoc: ME.location, distance: 0, cashPrice: Number.isFinite(cash) && cash > 0 ? cash : null, ownerRating: ME.rating, ownerInitials: ME.initials || initialsOf(ME.name), listed: new Date().toLocaleDateString('en-US') });
   save();
   e.target.reset();
   pendingPhoto = null;

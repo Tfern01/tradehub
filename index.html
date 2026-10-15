@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>TradeHub — Peer to Peer Trading</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230064E0'/%3E%3Cg stroke='white' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 22l-8 8 8 8'/%3E%3Cpath d='M12 30h24'/%3E%3Cpath d='M44 34l8 8-8 8'/%3E%3Cpath d='M52 42H28'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -64,7 +65,7 @@
 
   <!-- ITEM DETAIL -->
   <section id="view-detail" class="view">
-    <button class="back-btn" data-nav="discover"><span class="material-symbols-outlined icon-inline">arrow_back</span> Back to Discover</button>
+    <button class="back-btn" id="detailBack"><span class="material-symbols-outlined icon-inline">arrow_back</span> Back</button>
     <div id="detailContent"></div>
   </section>
 
@@ -104,7 +105,7 @@
       </label>
       <p class="muted">Leave blank for trade-only. Trading is always the main option — cash is just a backup.</p>
       <div class="form-actions">
-        <button type="button" class="btn btn-ghost" data-nav="discover">Cancel</button>
+        <button type="button" class="btn btn-ghost" data-nav="home">Cancel</button>
         <button type="submit" class="btn btn-primary">Add Item</button>
       </div>
     </form>
