@@ -373,7 +373,6 @@ function renderHome() {
     }).join('')}</div>` : ''}
     <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
     ${pairingsHTML()}
-    ${pairingsHTML()}
     <div class="home-section"><div class="home-section-head"><h2>Near you</h2></div><div class="grid" id="nearGrid">${nearby.map(cardHTML).join('')}</div>
       <div class="see-more-wrap"><button class="btn btn-outline see-more" data-nav="discover">See More</button></div></div>`;
   $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
