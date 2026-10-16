@@ -218,25 +218,137 @@ function traderLevel(done) {
 const completedTrades = () => state.offers.filter(o => o.status === 'Completed').length;
 
 // ---------- INTERESTS ----------
-// YouTube-style interest tags: shared by Home, Profile, and the pairing engine.
+// YouTube-style interest tags: one store, shared by Home, Profile, and the pairing engine.
 const interestTags = () => state.interests.map(t => t.toLowerCase());
 const matchesInterests = i => { const tags = interestTags(); return tags.length > 0 && tags.some(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t)); };
 const matchingTag = i => interestTags().find(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t));
-const X_GLYPH = '\u00d7', Q_OPEN = '\u201c', Q_CLOSE = '\u201d';
 function interestTagsHTML() {
-  return '<div class="interest-tags">' +
-    state.interests.map(t => '<span class="interest-tag">' + esc(t) + '<button data-rmtag="' + esc(t) + '" aria-label="Remove interest">' + X_GLYPH + '</button></span>').join('') +
-    '<button class="interest-add" data-addinterest><span class="material-symbols-outlined icon-inline">add</span> Add</button></div>';
+  return '<div class="interest-tags">'
+    + state.interests.map(t => '<span class="interest-tag">' + esc(t) + '<button data-rmtag="' + esc(t) + '" aria-label="Remove interest">\u00d7</button></span>').join('')
+    + '<button class="interest-add" data-addinterest><span class="material-symbols-outlined icon-inline">add</span> Add</button></div>';
 }
 function openInterestModal() {
-  document.getElementById('interestInput').value = '';
+  $('#interestInput').value = '';
   renderSuggestions();
-  document.getElementById('interestModal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('interestInput').focus(), 60);
+  $('#interestModal').classList.remove('hidden');
+  setTimeout(() => $('#interestInput').focus(), 60);
 }
 function bindInterestTags(root) {
-  bindInterestTags(document.getElementById('homeContent'));
-  Array.from(document.querySelectorAll('#homeContent [data-pairitem]')).forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.pairitem)));
+  root.querySelectorAll('[data-rmtag]').forEach(b => b.addEventListener('click', () => {
+    state.interests = state.interests.filter(t => t !== b.dataset.rmtag);
+    save();
+    if (currentView === 'home') renderHome(); else renderProfile();
+  }));
+  root.querySelectorAll('[data-addinterest]').forEach(b => b.addEventListener('click', openInterestModal));
+}
+// Tap-to-add suggestions, derived from what's actually listed nearby.
+function suggestedTags() {
+  const have = new Set(interestTags());
+  const live = state.items.filter(i => !i.traded && !state.blocked.includes(i.owner));
+  const cats = [...new Set(live.map(i => i.category))].filter(c => !have.has(c.toLowerCase()));
+  const stop = new Set(['with', 'from', 'your', 'this', 'that', 'and', 'for', 'the']);
+  const freq = {};
+  live.forEach(i => i.title.toLowerCase().split(/[^a-z]+/).forEach(w => {
+    if (w.length >= 4 && !stop.has(w) && !have.has(w)) freq[w] = (freq[w] || 0) + 1;
+  }));
+  const words = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
+  return [...cats, ...words].slice(0, 8);
+}
+function renderSuggestions() {
+  const box = $('#suggestRow');
+  const sug = suggestedTags();
+  box.innerHTML = sug.length
+    ? sug.map(t => '<button class="suggest-chip" data-suggest="' + esc(t) + '">' + esc(t) + '</button>').join('')
+    : '<span class="muted">No suggestions right now — type your own above.</span>';
+  box.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.suggest;
+    if (!state.interests.some(t => t.toLowerCase() === v.toLowerCase()) && state.interests.length < 12) {
+      state.interests.push(v); save();
+    }
+    renderSuggestions();
+    if (currentView === 'home') renderHome(); else renderProfile();
+  }));
+}
+// Pairing engine: the double coincidence of wants. Scores nearby traders on
+// mutual overlap — their listings hitting your interests, and your listings
+// hitting the categories they trade in.
+function buildPairings() {
+  const others = [...new Set(state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).map(i => i.owner))];
+  const myItems = state.items.filter(i => i.owner === ME.name && !i.traded);
+  const pairs = [];
+  others.forEach(name => {
+    const theirItems = state.items.filter(i => i.owner === name && !i.traded);
+    if (!theirItems.length) return;
+    const theirHits = theirItems.filter(matchesInterests);
+    const theirCats = new Set(theirItems.map(i => i.category));
+    const myHits = myItems.filter(i => theirCats.has(i.category));
+    const score = theirHits.length * 2 + myHits.length;
+    if (score <= 0) return;
+    const first = theirHits[0] || theirItems[0];
+    const reasons = [];
+    if (theirHits.length) {
+      const tag = matchingTag(theirHits[0]);
+      reasons.push('Has <b>' + esc(theirHits[0].title) + '</b>' + (tag ? ' — matches your \u201c' + esc(tag) + '\u201d' : ''));
+    }
+    if (myHits.length) reasons.push('You have <b>' + esc(myHits[0].title) + '</b> — trades ' + esc(myHits[0].category) + ', like them');
+    pairs.push({ name, score, itemId: first.id, dist: first.distance == null ? 'nearby' : '~' + first.distance + ' mi', reason: reasons.join('<br>') });
+  });
+  return pairs.sort((a, b) => b.score - a.score);
+}
+function pairCardHTML(p) {
+  return '<div class="pair-card" data-pairitem="' + p.itemId + '">'
+    + '<span class="avatar" style="background:' + faceColor(p.name) + ';color:#fff">' + esc(initialsOf(p.name)) + '</span>'
+    + '<div class="pair-text"><div class="pair-name">' + esc(p.name) + ' <span class="muted">· ' + esc(p.dist) + '</span></div>'
+    + '<div class="pair-reason">' + p.reason + '</div></div>'
+    + '<span class="material-symbols-outlined icon-inline">arrow_forward</span></div>';
+}
+function pairingsHTML() {
+  const pairs = buildPairings().slice(0, 3);
+  if (!pairs.length) return '';
+  return '<div class="home-section"><div class="home-section-head"><h2>Made to trade</h2></div>' + pairs.map(pairCardHTML).join('') + '</div>';
+}
+
+
+// Personalized hub: pending offers, unread messages, categories,
+// nearby items, and community activity. Browse lives behind See all.
+function renderHome() {
+  const mine = state.items.filter(i => i.owner === ME.name);
+  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner))
+    .sort((a, b) => (matchesInterests(b) - matchesInterests(a)) || ((a.distance ?? 999) - (b.distance ?? 999))).slice(0, 4);
+  const pending = state.offers.filter(o => o.status === 'Pending');
+  const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
+  const offerRow = o => {
+    const theirItem = o.type === 'cash' ? itemById(o.theirItemId) : itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
+    return `<div class="home-offer" data-offer="${o.id}">
+      ${theirItem ? `<img src="${esc(theirItem.image)}" alt="">` : ''}
+      <div class="home-offer-text"><div class="home-offer-title">${esc(theirItem ? theirItem.title : 'Trade offer')}</div>
+      <div class="home-offer-sub">${o.direction === 'received' ? 'From ' + esc(o.from) : 'Sent to ' + esc(o.from)} · ${esc(o.date)}</div></div>
+      <span class="badge">${esc(o.status)}</span>
+    </div>`;
+  };
+  const tile = c => {
+    const n = state.items.filter(i => i.category === c.name && !i.traded && !state.blocked.includes(i.owner)).length;
+    return `<button class="cat-tile" data-cat="${c.name}"><span class="tic" style="background:${c.bg};color:${c.fg}">${c.svg}</span><b>${c.name}</b><span>${n} item${n === 1 ? '' : 's'}</span></button>`;
+  };
+  $('#homeContent').innerHTML = `
+    <div class="home-welcome"><h1>Welcome back, Alex</h1></div>
+    ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
+    ${unreadConvos.length ? `<div class="home-section"><div class="home-section-head"><h2>Unread messages</h2><button class="see-all" data-nav="messages">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${unreadConvos.map(c => {
+      const last = c.messages[c.messages.length - 1];
+      return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
+    }).join('')}</div>` : ''}
+    <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
+    <div class="home-section"><div class="home-section-head"><h2>Your interests</h2></div>
+      ${interestTagsHTML()}
+      <p class="muted interests-hint">Tell us what you\u2019re hunting for \u2014 matching items will surface first in your feed.</p>
+    </div>
+    ${pairingsHTML()}
+    <div class="home-section"><div class="home-section-head"><h2>Near you</h2></div><div class="grid" id="nearGrid">${nearby.map(cardHTML).join('')}</div>
+      <div class="see-more-wrap"><button class="btn btn-outline see-more" data-nav="discover">See More</button></div></div>`;
+  $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
+  $$('#homeContent [data-cat]').forEach(el => el.addEventListener('click', () => { currentCategory = el.dataset.cat; nav('discover'); }));
+  bindInterestTags($('#homeContent'));
+  $$('#homeContent [data-pairitem]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.pairitem)));
   // "For you" badges on interest-matched cards
   $$('#nearGrid .card').forEach(c => {
     const item = itemById(+c.dataset.id);
@@ -844,7 +956,7 @@ function renderProfile() {
   });
   $$('#profileContent .card[data-id]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
   bindSaveButtons();
-  bindInterestTags(document.getElementById('profileContent'));
+  bindInterestTags($('#profileContent'));
 }
 
 // ---------- INIT ----------
