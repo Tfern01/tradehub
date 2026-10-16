@@ -287,6 +287,17 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .see-more-wrap{text-align:center;margin-top:16px}
 .see-more{min-width:200px}
 .foryou-badge{position:absolute;top:10px;left:10px;background:var(--action);color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:5px 11px;z-index:2;letter-spacing:.02em}
+/* ---------- PAIRINGS ---------- */
+.pair-card{display:flex;gap:12px;align-items:center;background:var(--bg-surface);border-radius:16px;box-shadow:var(--shadow-card);padding:14px 16px;margin-bottom:10px;cursor:pointer}
+.pair-card .avatar{flex:none}
+.pair-text{flex:1;min-width:0}
+.pair-name{font-size:14.5px;font-weight:700}
+.pair-reason{font-size:13px;color:var(--text-secondary);line-height:1.55;margin-top:3px}
+.pair-card .icon-inline{color:var(--text-muted)}
+/* ---------- SUGGESTIONS ---------- */
+.suggest-label{font-size:12.5px;font-weight:600;color:var(--text-muted);margin:14px 0 8px}
+.suggest-row{display:flex;gap:8px;flex-wrap:wrap}
+.suggest-chip{border:1px solid var(--border);background:var(--bg-surface);border-radius:999px;padding:9px 15px;font-size:13px;font-weight:600;font-family:inherit;color:var(--text-primary);cursor:pointer}
 .modal-card h2{margin-bottom:8px}
 .modal-card label{display:block;font-size:14px;font-weight:500;margin-bottom:14px}
 .modal-card select,.modal-card textarea{width:100%;margin-top:8px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-input);font:inherit;font-size:14px;background:#fff}

@@ -217,56 +217,26 @@ function traderLevel(done) {
 }
 const completedTrades = () => state.offers.filter(o => o.status === 'Completed').length;
 
-
-// Personalized hub: pending offers, unread messages, categories,
-// nearby items, and community activity. Browse lives behind See all.
-function renderHome() {
-  const mine = state.items.filter(i => i.owner === ME.name);
-  // YouTube-style interest tags: matching items rank first in the feed.
-  const tags = state.interests.map(t => t.toLowerCase());
-  const matchesInterests = i => tags.length > 0 && tags.some(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t));
-  const nearby = state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner))
-    .sort((a, b) => (matchesInterests(b) - matchesInterests(a)) || ((a.distance ?? 999) - (b.distance ?? 999))).slice(0, 4);
-  const pending = state.offers.filter(o => o.status === 'Pending');
-  const unreadConvos = state.conversations.filter(c => c.folder === 'inbox' && c.unread);
-  const offerRow = o => {
-    const theirItem = o.type === 'cash' ? itemById(o.theirItemId) : itemById(o.direction === 'received' ? o.myItemId : o.theirItemId);
-    return `<div class="home-offer" data-offer="${o.id}">
-      ${theirItem ? `<img src="${esc(theirItem.image)}" alt="">` : ''}
-      <div class="home-offer-text"><div class="home-offer-title">${esc(theirItem ? theirItem.title : 'Trade offer')}</div>
-      <div class="home-offer-sub">${o.direction === 'received' ? 'From ' + esc(o.from) : 'Sent to ' + esc(o.from)} · ${esc(o.date)}</div></div>
-      <span class="badge">${esc(o.status)}</span>
-    </div>`;
-  };
-  const tile = c => {
-    const n = state.items.filter(i => i.category === c.name && !i.traded && !state.blocked.includes(i.owner)).length;
-    return `<button class="cat-tile" data-cat="${c.name}"><span class="tic" style="background:${c.bg};color:${c.fg}">${c.svg}</span><b>${c.name}</b><span>${n} item${n === 1 ? '' : 's'}</span></button>`;
-  };
-  $('#homeContent').innerHTML = `
-    <div class="home-welcome"><h1>Welcome back, Alex</h1></div>
-    ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
-    ${unreadConvos.length ? `<div class="home-section"><div class="home-section-head"><h2>Unread messages</h2><button class="see-all" data-nav="messages">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${unreadConvos.map(c => {
-      const last = c.messages[c.messages.length - 1];
-      return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
-    }).join('')}</div>` : ''}
-    <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
-    <div class="home-section"><div class="home-section-head"><h2>Your interests</h2></div>
-      <div class="interest-tags">
-        ${state.interests.map(t => `<span class="interest-tag">${esc(t)}<button data-rmtag="${esc(t)}" aria-label="Remove interest">\u00d7</button></span>`).join('')}
-        <button class="interest-add" id="addInterestBtn"><span class="material-symbols-outlined icon-inline">add</span> Add</button>
-      </div>
-      <p class="muted interests-hint">Tell us what you're hunting for — matching items will surface first in your feed.</p>
-    </div>
-    <div class="home-section"><div class="home-section-head"><h2>Near you</h2></div><div class="grid" id="nearGrid">${nearby.map(cardHTML).join('')}</div>
-      <div class="see-more-wrap"><button class="btn btn-outline see-more" data-nav="discover">See More</button></div></div>`;
-  $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
-  $$('#homeContent [data-cat]').forEach(el => el.addEventListener('click', () => { currentCategory = el.dataset.cat; nav('discover'); }));
-  $$('#homeContent [data-rmtag]').forEach(b => b.addEventListener('click', () => {
-    state.interests = state.interests.filter(t => t !== b.dataset.rmtag);
-    save(); renderHome();
-  }));
-  const addBtn = $('#addInterestBtn');
-  if (addBtn) addBtn.addEventListener('click', () => { $('#interestInput').value = ''; $('#interestModal').classList.remove('hidden'); setTimeout(() => $('#interestInput').focus(), 60); });
+// ---------- INTERESTS ----------
+// YouTube-style interest tags: shared by Home, Profile, and the pairing engine.
+const interestTags = () => state.interests.map(t => t.toLowerCase());
+const matchesInterests = i => { const tags = interestTags(); return tags.length > 0 && tags.some(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t)); };
+const matchingTag = i => interestTags().find(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t));
+const X_GLYPH = '\u00d7', Q_OPEN = '\u201c', Q_CLOSE = '\u201d';
+function interestTagsHTML() {
+  return '<div class="interest-tags">' +
+    state.interests.map(t => '<span class="interest-tag">' + esc(t) + '<button data-rmtag="' + esc(t) + '" aria-label="Remove interest">' + X_GLYPH + '</button></span>').join('') +
+    '<button class="interest-add" data-addinterest><span class="material-symbols-outlined icon-inline">add</span> Add</button></div>';
+}
+function openInterestModal() {
+  document.getElementById('interestInput').value = '';
+  renderSuggestions();
+  document.getElementById('interestModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('interestInput').focus(), 60);
+}
+function bindInterestTags(root) {
+  bindInterestTags(document.getElementById('homeContent'));
+  Array.from(document.querySelectorAll('#homeContent [data-pairitem]')).forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.pairitem)));
   // "For you" badges on interest-matched cards
   $$('#nearGrid .card').forEach(c => {
     const item = itemById(+c.dataset.id);
@@ -514,7 +484,7 @@ const addInterest = () => {
   }
   $('#interestInput').value = '';
   $('#interestModal').classList.add('hidden');
-  if (currentView === 'home') renderHome();
+  if (currentView === 'home') renderHome(); else if (currentView === 'profile') renderProfile();
 };
 $('#interestAdd').addEventListener('click', addInterest);
 $('#interestInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } });
@@ -839,6 +809,9 @@ function renderProfile() {
         <button class="btn btn-outline" id="signOutBtn" style="margin-top:16px">Sign out</button>
       </div>
     </div>
+    <div class="section-head"><h2>Interested in</h2></div>
+    ${interestTagsHTML()}
+    <p class="muted interests-hint" style="margin-bottom:20px">These tune your feed \u2014 and help nearby traders find you.</p>
     <div class="level-card"><div class="level-top"><b>Level ${lv.cur.n} · ${lv.cur.name}</b><span class="lvl-pill">LV ${lv.cur.n}</span></div><div class="progress"><i style="width:${lv.pct}%"></i></div><p class="muted">${lv.next ? `${lv.next.at - done} more trade${lv.next.at - done === 1 ? '' : 's'} to reach <b>Level ${lv.next.n} · ${lv.next.name}</b>` : 'Max level — local legend status.'}</p></div>
     <div class="goal-card"><h2>Goals</h2>
       <div class="goal-row"><div class="gr-top"><b>List 5 items</b><span>${goalItems} of 5</span></div><div class="progress sm"><i style="width:${goalItems / 5 * 100}%"></i></div></div>
@@ -871,6 +844,7 @@ function renderProfile() {
   });
   $$('#profileContent .card[data-id]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
   bindSaveButtons();
+  bindInterestTags(document.getElementById('profileContent'));
 }
 
 // ---------- INIT ----------
