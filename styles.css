@@ -294,6 +294,7 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .pair-name{font-size:14.5px;font-weight:700}
 .pair-reason{font-size:13px;color:var(--text-secondary);line-height:1.55;margin-top:3px}
 .pair-card .icon-inline{color:var(--text-muted)}
+.mutual-pill{font-size:10.5px;font-weight:700;color:#1a7f37;background:#e6f4ea;border-radius:999px;padding:3px 9px;margin-left:6px;vertical-align:1px;white-space:nowrap}
 /* ---------- SUGGESTIONS ---------- */
 .suggest-label{font-size:12.5px;font-weight:600;color:var(--text-muted);margin:14px 0 8px}
 .suggest-row{display:flex;gap:8px;flex-wrap:wrap}

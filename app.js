@@ -269,9 +269,24 @@ function renderSuggestions() {
     if (currentView === 'home') renderHome(); else renderProfile();
   }));
 }
-// Pairing engine: the double coincidence of wants. Scores nearby traders on
-// mutual overlap — their listings hitting your interests, and your listings
-// hitting the categories they trade in.
+// Declared wants per trader (demo seed). In production this comes from each
+// trader's own "Interested in" profile section — the other half of the trade.
+const TRADER_WANTS = {
+  'Sarah Chen': ['mechanical keyboard', 'electronics'],
+  'James Wilson': ['bluetooth speaker'],
+  'Emma Thompson': ['film camera', 'camera'],
+  'David Kim': ['espresso machine'],
+  'Priya Patel': ['mechanical keyboard'],
+  'Maria Lopez': ['speaker', 'audio'],
+};
+function traderWants(name) {
+  if (TRADER_WANTS[name]) return TRADER_WANTS[name];
+  // Fallback: infer from the categories they trade in.
+  return [...new Set(state.items.filter(i => i.owner === name).map(i => i.category))];
+}
+// Pairing engine v2: the double coincidence of wants, both sides declared.
+// They HAVE what I want  +  they WANT what I have, then distance decay and
+// a light reputation tiebreak.
 function buildPairings() {
   const others = [...new Set(state.items.filter(i => i.owner !== ME.name && !i.traded && !state.blocked.includes(i.owner)).map(i => i.owner))];
   const myItems = state.items.filter(i => i.owner === ME.name && !i.traded);
@@ -279,26 +294,41 @@ function buildPairings() {
   others.forEach(name => {
     const theirItems = state.items.filter(i => i.owner === name && !i.traded);
     if (!theirItems.length) return;
+    // Side 1: their listings hitting MY declared interests.
     const theirHits = theirItems.filter(matchesInterests);
-    const theirCats = new Set(theirItems.map(i => i.category));
-    const myHits = myItems.filter(i => theirCats.has(i.category));
-    const score = theirHits.length * 2 + myHits.length;
+    // Side 2: my listings hitting THEIR declared wants.
+    const wantTags = traderWants(name).map(t => t.toLowerCase());
+    const hitText = i => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase();
+    const myHits = wantTags.length ? myItems.filter(i => wantTags.some(t => hitText(i).includes(t))) : [];
+    let score = theirHits.length * 2 + myHits.length * 2;
     if (score <= 0) return;
+    // Distance decay: nearer traders win ties.
+    const dist = Math.min(...theirItems.map(i => i.distance == null ? 999 : i.distance));
+    score = score / (1 + dist / 12);
+    // Reputation tiebreak: higher-rated traders float slightly up.
+    const rating = theirItems[0].ownerRating || 4.5;
+    score = score * (0.8 + rating * 0.06);
     const first = theirHits[0] || theirItems[0];
+    const mutual = theirHits.length > 0 && myHits.length > 0;
     const reasons = [];
     if (theirHits.length) {
       const tag = matchingTag(theirHits[0]);
-      reasons.push('Has <b>' + esc(theirHits[0].title) + '</b>' + (tag ? ' — matches your \u201c' + esc(tag) + '\u201d' : ''));
+      reasons.push('Has <b>' + esc(theirHits[0].title) + '</b>' + (tag ? ' — you want \u201c' + esc(tag) + '\u201d' : ''));
     }
-    if (myHits.length) reasons.push('You have <b>' + esc(myHits[0].title) + '</b> — trades ' + esc(myHits[0].category) + ', like them');
-    pairs.push({ name, score, itemId: first.id, dist: first.distance == null ? 'nearby' : '~' + first.distance + ' mi', reason: reasons.join('<br>') });
+    if (myHits.length) {
+      const wtag = wantTags.find(t => hitText(myHits[0]).includes(t));
+      reasons.push('Wants <b>' + esc(myHits[0].title) + '</b>' + (wtag ? ' — matches their \u201c' + esc(wtag) + '\u201d' : ''));
+    }
+    pairs.push({ name, score, mutual, itemId: first.id,
+      dist: first.distance == null ? 'nearby' : '~' + first.distance + ' mi',
+      reason: reasons.join('<br>') });
   });
   return pairs.sort((a, b) => b.score - a.score);
 }
 function pairCardHTML(p) {
   return '<div class="pair-card" data-pairitem="' + p.itemId + '">'
     + '<span class="avatar" style="background:' + faceColor(p.name) + ';color:#fff">' + esc(initialsOf(p.name)) + '</span>'
-    + '<div class="pair-text"><div class="pair-name">' + esc(p.name) + ' <span class="muted">· ' + esc(p.dist) + '</span></div>'
+    + '<div class="pair-text"><div class="pair-name">' + esc(p.name) + ' <span class="muted">· ' + esc(p.dist) + '</span>' + (p.mutual ? '<span class="mutual-pill">Mutual match</span>' : '') + '</div>'
     + '<div class="pair-reason">' + p.reason + '</div></div>'
     + '<span class="material-symbols-outlined icon-inline">arrow_forward</span></div>';
 }
