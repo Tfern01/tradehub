@@ -302,6 +302,10 @@ function buildPairings() {
     const myHits = wantTags.length ? myItems.filter(i => wantTags.some(t => hitText(i).includes(t))) : [];
     let score = theirHits.length * 2 + myHits.length * 2;
     if (score <= 0) return;
+    // RuneScape rule: both sides priced and values wildly apart -> no pairing.
+    const priceA = (theirHits[0] || theirItems[0]).cashPrice;
+    const priceB = myHits.length ? myHits[0].cashPrice : null;
+    if (priceA && priceB && Math.max(priceA, priceB) / Math.min(priceA, priceB) > 3) return;
     // Distance decay: nearer traders win ties.
     const dist = Math.min(...theirItems.map(i => i.distance == null ? 999 : i.distance));
     score = score / (1 + dist / 12);
@@ -368,16 +372,12 @@ function renderHome() {
       return `<div class="home-msg" data-convo="${c.id}"><span class="avatar">${esc(c.initials)}</span><div class="convo-text"><div class="convo-name">${esc(c.with)}</div><div class="convo-preview">${esc(last ? last.text : '')}</div></div></div>`;
     }).join('')}</div>` : ''}
     <div class="home-section"><div class="home-section-head"><h2>Categories</h2><button class="see-all" data-nav="discover">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div><div class="cat-tiles">${CATS.map(tile).join('')}</div></div>
-    <div class="home-section"><div class="home-section-head"><h2>Your interests</h2></div>
-      ${interestTagsHTML()}
-      <p class="muted interests-hint">Tell us what you\u2019re hunting for \u2014 matching items will surface first in your feed.</p>
-    </div>
+    ${pairingsHTML()}
     ${pairingsHTML()}
     <div class="home-section"><div class="home-section-head"><h2>Near you</h2></div><div class="grid" id="nearGrid">${nearby.map(cardHTML).join('')}</div>
       <div class="see-more-wrap"><button class="btn btn-outline see-more" data-nav="discover">See More</button></div></div>`;
   $$('#homeContent [data-nav]').forEach(el => el.addEventListener('click', () => nav(el.dataset.nav)));
   $$('#homeContent [data-cat]').forEach(el => el.addEventListener('click', () => { currentCategory = el.dataset.cat; nav('discover'); }));
-  bindInterestTags($('#homeContent'));
   $$('#homeContent [data-pairitem]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.pairitem)));
   // "For you" badges on interest-matched cards
   $$('#nearGrid .card').forEach(c => {
@@ -631,6 +631,40 @@ const addInterest = () => {
 $('#interestAdd').addEventListener('click', addInterest);
 $('#interestInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } });
 $('#interestClose').addEventListener('click', () => $('#interestModal').classList.add('hidden'));
+const openProfileEditor = () => {
+  const acc = getSessionAccount(); if (!acc) return;
+  $('#pfName').value = acc.name || '';
+  $('#pfCity').value = acc.city || '';
+  $('#pfBio').value = acc.bio || '';
+  $('#editProfileModal').classList.remove('hidden');
+};
+const saveProfile = () => {
+  const acc = getSessionAccount(); if (!acc) return;
+  const name = $('#pfName').value.trim() || acc.name;
+  const oldName = acc.name;
+  acc.name = name;
+  acc.city = $('#pfCity').value.trim();
+  acc.bio = $('#pfBio').value.trim();
+  if (name !== oldName) {
+    // A rename follows the trader everywhere: listings, offers, conversations.
+    state.items.forEach(i => { if (i.owner === oldName) i.owner = name; });
+    state.offers.forEach(o => { if (o.from === oldName) o.from = name; });
+    state.conversations.forEach(c => { if (c.with === oldName) c.with = name; });
+    save();
+  }
+  persistAccounts();
+  ME = accountToME(acc);
+  const ha = $('#headerAvatar');
+  if (ha) ha.textContent = ME.initials || initialsOf(ME.name);
+  $('#editProfileModal').classList.add('hidden');
+  if (currentView === 'profile') renderProfile();
+  toast('Profile updated.');
+};
+$('#profileSave').addEventListener('click', saveProfile);
+$('#profileEditClose').addEventListener('click', () => $('#editProfileModal').classList.add('hidden'));
+$('#editProfileModal').addEventListener('click', e => { if (e.target.id === 'editProfileModal') $('#editProfileModal').classList.add('hidden'); });
+$('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveProfile(); } });
+$('#pfCity').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveProfile(); } });
 $('#interestModal').addEventListener('click', e => { if (e.target.id === 'interestModal') $('#interestModal').classList.add('hidden'); });
 $('#successShare').addEventListener('click', async () => {
   const item = itemById(lastListedId);
@@ -948,7 +982,7 @@ function renderProfile() {
           <div class="stat"><b>${mine.length}</b><span>Items</span></div>
         </div>
         <p class="bio" style="margin-top:12px">${ME.bio}</p>
-        <button class="btn btn-outline" id="signOutBtn" style="margin-top:16px">Sign out</button>
+        <div style="margin-top:16px;display:flex;gap:10px"><button class="btn btn-outline" id="editProfileBtn" style="flex:1">Edit profile</button><button class="btn btn-outline" id="signOutBtn" style="flex:1">Sign out</button></div>
       </div>
     </div>
     <div class="section-head"><h2>Interested in</h2></div>
@@ -987,6 +1021,8 @@ function renderProfile() {
   $$('#profileContent .card[data-id]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
   bindSaveButtons();
   bindInterestTags($('#profileContent'));
+  const epb = $('#editProfileBtn');
+  if (epb) epb.addEventListener('click', openProfileEditor);
 }
 
 // ---------- INIT ----------

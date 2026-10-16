@@ -198,6 +198,18 @@
   </div>
 </div>
 
+<!-- EDIT PROFILE -->
+<div id="editProfileModal" class="modal hidden">
+  <div class="modal-card">
+    <button class="modal-x" id="profileEditClose" aria-label="Close">×</button>
+    <h2>Edit profile</h2>
+    <div class="field" style="margin-bottom:12px"><label for="pfName">Name</label><input id="pfName" type="text" maxlength="40" autocomplete="off"></div>
+    <div class="field" style="margin-bottom:12px"><label for="pfCity">Location</label><input id="pfCity" type="text" maxlength="60" autocomplete="off" placeholder="City, ST"></div>
+    <div class="field" style="margin-bottom:14px"><label for="pfBio">Bio</label><textarea id="pfBio" rows="3" maxlength="160"></textarea></div>
+    <div class="form-actions"><button class="btn btn-primary" id="profileSave" style="flex:1">Save changes</button></div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <nav class="bottomnav">
