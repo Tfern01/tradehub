@@ -35,17 +35,81 @@
         <p id="siError" class="auth-error hidden"></p>
         <button type="submit" class="btn btn-primary auth-submit">Sign in</button>
       </form>
-      <form id="signupForm" class="auth-form hidden">
-        <label>Name <input id="suName" type="text" required autocomplete="name" placeholder="e.g., Tyler Reed"></label>
-        <label>Email <input id="suEmail" type="email" required autocomplete="email"></label>
-        <label>City <input id="suCity" type="text" required autocomplete="address-level2" placeholder="e.g., Gilmer, TX"></label>
-        <label>Password <input id="suPass" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
-        <p id="suError" class="auth-error hidden"></p>
-        <button type="submit" class="btn btn-primary auth-submit">Create account</button>
-      </form>
       <div class="auth-divider"><span>or</span></div>
       <button class="btn btn-outline auth-submit" id="demoSignin">Explore the demo</button>
       <p class="muted auth-demo-note">Demo account: alex@demo.tradehub / demo1234</p>
+    </div>
+  </section>
+
+  <!-- ONBOARDING: 4-step new-user flow (account → interests → first listing → matches) -->
+  <section id="view-onboard" class="view">
+    <div class="ob-wrap">
+
+      <div class="ob-step" id="obStep1">
+        <button class="ob-back" id="obBack1" type="button">‹ Back</button>
+        <div class="ob-wordmark">TradeHub</div>
+        <div class="ob-progress"><div class="ob-plabel">Step 1 of 4 — Your account</div><div class="ob-track"><div class="ob-fill" style="width:25%"></div></div></div>
+        <h1 class="ob-h1">Trade near you.</h1>
+        <p class="ob-sub">List what you have, find what you want, and trade with people nearby.</p>
+        <form id="obAccountForm" class="ob-form" novalidate>
+          <div class="field"><label for="obName">Name</label><input id="obName" type="text" autocomplete="name" placeholder="e.g., Tyler Reed"></div>
+          <div class="field"><label for="obEmail">Email</label><input id="obEmail" type="email" autocomplete="email" placeholder="you@email.com"></div>
+          <div class="field"><label for="obPass">Password</label><input id="obPass" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+          <div class="field"><label for="obCity">Location</label><input id="obCity" type="text" autocomplete="address-level2" placeholder="e.g., Gilmer, TX"></div>
+          <p id="obError" class="auth-error hidden"></p>
+          <button type="submit" class="btn btn-primary ob-cta">Continue</button>
+        </form>
+        <p class="fee-note">Item trades are always free. A 5% fee applies only to cash sales.</p>
+      </div>
+
+      <div class="ob-step hidden" id="obStep2">
+        <div class="ob-topbar"><button class="ob-back" id="obBack2" type="button">‹ Back</button><button class="ob-skip" id="obSkip2" type="button">Skip</button></div>
+        <div class="ob-progress"><div class="ob-plabel">Step 2 of 4 — Your interests</div><div class="ob-track"><div class="ob-fill" style="width:50%"></div></div></div>
+        <h1 class="ob-h1">What are you into?</h1>
+        <p class="ob-sub">Pick a few interests — we'll tailor your feed and match you with traders from day one.</p>
+        <p class="ob-sec">Popular near you</p>
+        <div class="ob-chips" id="obPopular"></div>
+        <p class="ob-sec">More to explore</p>
+        <div class="ob-chips" id="obExplore"></div>
+        <div class="ob-addrow"><input id="obCustom" type="text" maxlength="30" placeholder="Add your own…" autocomplete="off"><button type="button" id="obAddCustom" class="btn btn-outline">Add</button></div>
+        <p class="ob-count" id="obCount"></p>
+        <button class="btn btn-primary ob-cta" id="obNext2" type="button">Continue</button>
+        <button class="ob-skipbtn" id="obSkip2b" type="button">Skip for now</button>
+      </div>
+
+      <div class="ob-step hidden" id="obStep3">
+        <div class="ob-topbar"><button class="ob-back" id="obBack3" type="button">‹ Back</button><button class="ob-skip" id="obSkip3" type="button">Skip</button></div>
+        <div class="ob-progress"><div class="ob-plabel">Step 3 of 4 — Your first trade</div><div class="ob-track"><div class="ob-fill" style="width:75%"></div></div></div>
+        <h1 class="ob-h1">What's your first trade?</h1>
+        <p class="ob-sub">Snap something you don't need. Every great trade starts with a first listing.</p>
+        <div class="ob-photo" id="obPhotoHero">
+          <label for="obPhotoInput" class="ob-photo-empty" id="obPhotoEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+            <span>Add a photo</span><small>Optional — you can add one later</small>
+          </label>
+          <img id="obPhotoImg" alt="">
+          <button type="button" id="obPhotoRemove" class="photo-remove hidden" aria-label="Remove photo">×</button>
+          <input id="obPhotoInput" type="file" accept="image/*" hidden>
+        </div>
+        <div class="field"><label for="obTitle">Title</label><input id="obTitle" type="text" placeholder="e.g. Mechanical Keyboard"></div>
+        <div class="field-row">
+          <div class="field"><label for="obCategory">Category</label><select id="obCategory"><option value="">Select</option><option>Electronics</option><option>Music</option><option>Outdoor</option><option>Collectibles</option><option>Fashion</option></select></div>
+          <div class="field"><label for="obCondition">Condition</label><select id="obCondition"><option value="">Select</option><option>Like New</option><option>Good</option><option>Fair</option></select></div>
+        </div>
+        <p id="obListError" class="auth-error hidden"></p>
+        <button class="btn btn-primary ob-cta" id="obListIt" type="button">List it</button>
+        <button class="ob-skipbtn" id="obSkip3b" type="button">I'll do this later</button>
+      </div>
+
+      <div class="ob-step hidden" id="obStep4">
+        <div class="ob-progress"><div class="ob-plabel">Step 4 of 4 — You're in</div><div class="ob-track"><div class="ob-fill" style="width:100%"></div></div></div>
+        <div class="ob-done"><svg viewBox="0 0 24 24" fill="none" stroke="#0064E0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.7 2.7L16 9.5"/></svg></div>
+        <h1 class="ob-h1">You're in!</h1>
+        <p class="ob-sub" id="obDoneSub"></p>
+        <div id="obPairs"></div>
+        <button class="btn btn-primary ob-cta" id="obFinish" type="button">Start trading</button>
+      </div>
+
     </div>
   </section>
 

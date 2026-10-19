@@ -358,3 +358,41 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .goal-row .gr-top{display:flex;justify-content:space-between;align-items:baseline}
 .goal-row b{font-size:14px;font-weight:600}
 .goal-row span{font-size:12px;color:var(--text-muted)}
+
+/* ---------- ONBOARDING ---------- */
+#view-onboard{background:var(--bg)}
+.ob-wrap{max-width:480px;margin:0 auto;padding:12px 20px 48px}
+.ob-topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 0 0}
+.ob-back{background:none;border:0;color:var(--text-primary);font-size:16px;padding:8px 4px;cursor:pointer}
+.ob-skip{background:none;border:0;color:var(--text-muted);font-size:15px;padding:8px 4px;cursor:pointer}
+.ob-wordmark{text-align:center;font-weight:700;font-size:17px;letter-spacing:-.3px;padding:10px 0 0}
+.ob-progress{padding:16px 8px 0}
+.ob-plabel{font-size:12px;color:var(--text-muted);margin-bottom:8px;text-align:center}
+.ob-track{height:4px;background:#e3e3e8;border-radius:2px;overflow:hidden}
+.ob-fill{height:100%;background:var(--action);border-radius:2px;transition:width .3s ease}
+.ob-h1{font-size:30px;font-weight:700;letter-spacing:-.8px;text-align:center;line-height:1.15;margin:26px 0 0}
+.ob-sub{text-align:center;color:var(--text-muted);font-size:15px;line-height:1.45;margin:10px 6px 0}
+.ob-form{margin-top:24px}
+.ob-cta{width:100%;margin-top:22px}
+.ob-sec{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin:22px 2px 10px}
+.ob-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ob-chip{border:1px solid #e0e0e5;background:#fff;color:var(--text-primary);font-size:14.5px;font-family:inherit;padding:10px 16px;border-radius:999px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.ob-chip.on{background:#e8f1fe;border-color:var(--action);color:var(--action);font-weight:600}
+.ob-addrow{display:flex;gap:8px;margin-top:14px}
+.ob-addrow input{flex:1;border:1px dashed #c7c7cc;background:transparent;border-radius:999px;padding:11px 16px;font-size:14.5px;font-family:inherit;outline:none;color:var(--text-primary)}
+.ob-addrow input::placeholder{color:#aeaeb2}
+.ob-addrow .btn{border-radius:999px;padding:11px 20px}
+.ob-count{text-align:center;font-size:13px;color:var(--action);font-weight:600;margin-top:16px;min-height:18px}
+.ob-skipbtn{display:block;margin:14px auto 0;background:none;border:0;color:var(--text-muted);font-size:15px;cursor:pointer}
+.ob-photo{position:relative;margin-top:22px;border:2px dashed #c7c7cc;border-radius:18px;background:#fff;min-height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.ob-photo-empty{display:flex;flex-direction:column;align-items:center;gap:8px;color:#6e6e73;font-size:14px;cursor:pointer;padding:28px}
+.ob-photo-empty svg{width:30px;height:30px;color:#aeaeb2}
+.ob-photo-empty small{font-size:12px;color:#aeaeb2}
+.ob-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.ob-photo.has-photo img{display:block}
+.ob-photo.has-photo .ob-photo-empty{display:none}
+.ob-photo .photo-remove{position:absolute}
+.ob-done{width:84px;height:84px;border-radius:50%;background:#e8f1fe;display:flex;align-items:center;justify-content:center;margin:26px auto 6px}
+.ob-done svg{width:44px;height:44px}
+#obPairs{margin-top:18px}
+#obPairs .pair-card{margin-bottom:12px;cursor:pointer}

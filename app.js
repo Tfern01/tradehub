@@ -112,10 +112,10 @@ function toast(msg) {
 let currentView = 'home';
 const navStack = [];
 function nav(view, push = true) {
-  if (view !== 'auth' && !getSessionAccount()) view = 'auth';
-  if (push && currentView && currentView !== view && currentView !== 'auth' && view !== 'auth') navStack.push(currentView);
+  if (view !== 'auth' && view !== 'onboard' && !getSessionAccount()) view = 'auth';
+  if (push && currentView && currentView !== view && !['auth', 'onboard'].includes(currentView) && !['auth', 'onboard'].includes(view)) navStack.push(currentView);
   currentView = view;
-  document.body.classList.toggle('on-auth', view === 'auth');
+  document.body.classList.toggle('on-auth', view === 'auth' || view === 'onboard');
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#view-' + view).classList.add('active');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === view));
@@ -138,11 +138,13 @@ function goBack() {
 $('#detailBack').addEventListener('click', goBack);
 
 // ---------- AUTH ----------
+// Sign-in stays on the auth view; "Create account" now opens the
+// 4-step onboarding flow instead of an inline form.
 $$('.auth-tab').forEach(t => t.addEventListener('click', () => {
   $$('.auth-tab').forEach(x => x.classList.toggle('active', x === t));
   const tab = t.dataset.authTab;
+  if (tab === 'signup') { nav('onboard'); obShow(1); return; }
   $('#signinForm').classList.toggle('hidden', tab !== 'signin');
-  $('#signupForm').classList.toggle('hidden', tab !== 'signup');
 }));
 function authError(id, msg) {
   const el = $(id);
@@ -160,24 +162,143 @@ $('#signinForm').addEventListener('submit', async e => {
   toast('Welcome back, ' + acc.name.split(' ')[0] + '!');
   signInAs(acc);
 });
-$('#signupForm').addEventListener('submit', async e => {
+// ---------- ONBOARDING ----------
+// 4-step new-user flow: account → interests → first listing → matches.
+// Only fresh sign-ups come through here; sign-in and demo skip it.
+let obStep = 1;
+const obInterests = new Set();
+let obPhoto = null;
+const OB_EXPLORE = ['keyboards', 'vinyl', 'bikes', 'espresso', 'film', 'sneakers', 'books', 'plants', 'guitars', 'camping'];
+function obShow(n) {
+  obStep = n;
+  $$('.ob-step').forEach(s => s.classList.toggle('hidden', s.id !== 'obStep' + n));
+  if (n === 2) renderObInterests();
+  if (n === 4) renderObDone();
+  window.scrollTo(0, 0);
+}
+$('#obBack1').addEventListener('click', () => nav('auth'));
+$('#obBack2').addEventListener('click', () => obShow(1));
+$('#obBack3').addEventListener('click', () => obShow(2));
+
+// Step 1 — account creation (same validation as the old inline form).
+$('#obAccountForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const name = $('#suName').value.trim();
-  const email = $('#suEmail').value.trim().toLowerCase();
-  const city = $('#suCity').value.trim();
-  const pass = $('#suPass').value;
-  if (!name) { authError('#suError', 'Please enter your name.'); return; }
-  if (!/^\S+@\S+\.\S+$/.test(email)) { authError('#suError', 'Please enter a valid email address.'); return; }
-  if (!city) { authError('#suError', 'Please enter your city.'); return; }
-  if (pass.length < 8) { authError('#suError', 'Password must be at least 8 characters.'); return; }
-  if (accounts.some(a => a.email === email)) { authError('#suError', 'An account with that email already exists. Try signing in.'); return; }
+  const name = $('#obName').value.trim();
+  const email = $('#obEmail').value.trim().toLowerCase();
+  const city = $('#obCity').value.trim();
+  const pass = $('#obPass').value;
+  if (!name) { authError('#obError', 'Please enter your name.'); return; }
+  if (!/^\S+@\S+\.\S+$/.test(email)) { authError('#obError', 'Please enter a valid email address.'); return; }
+  if (!city) { authError('#obError', 'Please enter your city.'); return; }
+  if (pass.length < 8) { authError('#obError', 'Password must be at least 8 characters.'); return; }
+  if (accounts.some(a => a.email === email)) { authError('#obError', 'An account with that email already exists. Try signing in.'); return; }
   const acc = { name, email, city, passHash: await sha256(pass), createdAt: Date.now(), rating: '—', trades: 0, bio: 'New trader on TradeHub.' };
   accounts.push(acc);
   persistAccounts();
-  authError('#suError', '');
-  toast('Welcome to TradeHub, ' + name.split(' ')[0] + '!');
-  signInAs(acc);
+  authError('#obError', '');
+  localStorage.setItem(SESSION_KEY, acc.email);
+  ME = accountToME(acc);
+  obShow(2);
 });
+
+// Step 2 — interests. Live "Popular near you" suggestions (same engine as
+// the profile picker), a static explore row, and custom tags. Taps toggle;
+// the panel stays open so tags can be stacked.
+const obChip = t => '<button type="button" class="ob-chip' + (obInterests.has(t.toLowerCase()) ? ' on' : '') + '" data-obtag="' + esc(t) + '">' + esc(t) + '</button>';
+function renderObInterests() {
+  $('#obPopular').innerHTML = suggestedTags().map(obChip).join('');
+  $('#obExplore').innerHTML = OB_EXPLORE.filter(t => !obInterests.has(t.toLowerCase())).map(obChip).join('');
+  $('#obCount').textContent = obInterests.size ? obInterests.size + ' selected' : 'Pick a few — or skip';
+}
+$('#obStep2').addEventListener('click', e => {
+  const chip = e.target.closest('[data-obtag]');
+  if (!chip) return;
+  const tag = chip.dataset.obtag.toLowerCase();
+  if (obInterests.has(tag)) obInterests.delete(tag);
+  else if (obInterests.size < 12) obInterests.add(tag);
+  renderObInterests();
+});
+const obAddCustom = () => {
+  const v = $('#obCustom').value.trim().toLowerCase();
+  if (v && !obInterests.has(v) && obInterests.size < 12) obInterests.add(v);
+  $('#obCustom').value = '';
+  renderObInterests();
+};
+$('#obAddCustom').addEventListener('click', obAddCustom);
+$('#obCustom').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); obAddCustom(); } });
+const obCommitInterests = () => {
+  obInterests.forEach(t => { if (!state.interests.some(x => x.toLowerCase() === t)) state.interests.push(t); });
+  state.interests = state.interests.slice(0, 12);
+  save();
+  obShow(3);
+};
+$('#obNext2').addEventListener('click', obCommitInterests);
+$('#obSkip2').addEventListener('click', () => obShow(3));
+$('#obSkip2b').addEventListener('click', () => obShow(3));
+
+// Step 3 — first listing. Photo is optional here to keep momentum;
+// title, category, and condition are the minimum for a live listing.
+$('#obPhotoInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    obPhoto = await fileToCompressedDataURL(file);
+    $('#obPhotoImg').src = obPhoto;
+    $('#obPhotoHero').classList.add('has-photo');
+    $('#obPhotoRemove').classList.remove('hidden');
+  } catch { toast('Could not read that photo — try another one.'); }
+});
+$('#obPhotoRemove').addEventListener('click', () => {
+  obPhoto = null;
+  $('#obPhotoInput').value = '';
+  $('#obPhotoHero').classList.remove('has-photo');
+  $('#obPhotoRemove').classList.add('hidden');
+});
+const obSkipListing = () => obShow(4);
+$('#obSkip3').addEventListener('click', obSkipListing);
+$('#obSkip3b').addEventListener('click', obSkipListing);
+$('#obListIt').addEventListener('click', () => {
+  const title = $('#obTitle').value.trim();
+  const cat = $('#obCategory').value;
+  const cond = $('#obCondition').value;
+  if (!title || !cat || !cond) { authError('#obListError', 'Give your item a title, category, and condition.'); return; }
+  authError('#obListError', '');
+  state.items.unshift({ id: Date.now(), title, desc: '', category: cat, condition: cond,
+    image: obPhoto || 'images/no-photo.jpg',
+    owner: ME.name, ownerLoc: ME.location, distance: 0, cashPrice: null,
+    ownerRating: ME.rating, ownerInitials: ME.initials || initialsOf(ME.name),
+    listed: new Date().toLocaleDateString('en-US') });
+  save();
+  obShow(4);
+});
+
+// Step 4 — payoff. Pairings run on the real engine against the new user's
+// just-declared interests and first listing.
+function renderObDone() {
+  const myListing = state.items.find(i => i.owner === ME.name);
+  const pairs = buildPairings().slice(0, 3);
+  const sub = $('#obDoneSub');
+  const box = $('#obPairs');
+  if (myListing && pairs.length) {
+    const n = pairs.length;
+    sub.innerHTML = 'Your <b>' + esc(myListing.title) + '</b> already has <b>' + n + ' potential trade' + (n > 1 ? 's' : '') + '</b> nearby.';
+    box.innerHTML = pairs.map(pairCardHTML).join('');
+  } else if (pairs.length) {
+    sub.innerHTML = 'Your feed is tailored to your interests — and we found <b>' + pairs.length + ' people</b> near you to trade with.';
+    box.innerHTML = pairs.map(pairCardHTML).join('');
+  } else if (myListing) {
+    sub.innerHTML = 'Your <b>' + esc(myListing.title) + '</b> is live! As more traders join near you, matches will appear here.';
+    box.innerHTML = '';
+  } else {
+    sub.innerHTML = 'Your account is ready. List your first item to start trading.';
+    box.innerHTML = '';
+  }
+  $$('#obPairs [data-pairitem]').forEach(c => c.addEventListener('click', () => {
+    nav('home');
+    openDetail(+c.dataset.pairitem);
+  }));
+}
+$('#obFinish').addEventListener('click', () => nav('home'));
 $('#demoSignin').addEventListener('click', () => signInAs(DEMO_ACCOUNT));
 
 // ---------- HOME ----------
