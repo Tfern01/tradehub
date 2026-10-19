@@ -585,6 +585,7 @@ function openDetail(id) {
       : mine
       ? `<p class="muted">This is your item.</p>`
       : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
+      <button class="btn btn-outline" id="messageBtn" style="margin-top:8px">Message ${esc(i.owner.split(' ')[0])}</button>
       ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
       <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p><p class="promise-small">A 5% TradeHub fee applies to cash payments. Arrange payment directly with ${esc(i.owner)}.</p>
       <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}`}`;
@@ -603,6 +604,8 @@ function openDetail(id) {
   nav('detail');
   const btn = $('#proposeBtn');
   if (btn) btn.addEventListener('click', () => openTradeModal(id));
+  const msgBtn = $('#messageBtn');
+  if (msgBtn) msgBtn.addEventListener('click', () => openConversationWith(i.owner, i.id));
   const cashBtn = $('#cashOfferBtn');
   if (cashBtn) cashBtn.addEventListener('click', () => $('#cashConfirm').classList.remove('hidden'));
   const cashCancel = $('#cashCancel');
@@ -841,9 +844,50 @@ function offerHTML(o) {
     ${sides}
     <p class="offer-msg">${esc(o.message)}</p><p class="offer-tap-hint">Tap to review this trade <span class="material-symbols-outlined icon-inline">arrow_forward</span></p></div>`;
 }
-function tradeItemCard(item, fallback) {
-  if (!item) return `<div class="mini-item"><div><div class="mi-title">${fallback}</div></div></div>`;
-  return `<div class="mini-item"><img src="${esc(item.image)}" alt=""><div><div class="mi-title">${esc(item.title)}</div><div class="mi-sub">${esc(item.condition)} · ${esc(item.owner)}</div></div></div>`;
+// ---------- TRADE WINDOW (hybrid restyle) ----------
+const moneyFmt = n => { const v = +n; return Number.isInteger(v) ? String(v) : v.toFixed(2); };
+const TW_CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.7 2.7L16 9.5"/></svg>';
+const TW_WARN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 9.5v5"/><path d="M12 17.5v.01"/></svg>';
+
+function twItemCard(item, whoLabel, fallback) {
+  if (!item) return `<div class="tw-item"><div class="tw-photo tw-photo-empty"></div><div><div class="tw-who">${whoLabel}</div><div class="tw-name">${esc(fallback)}</div></div></div>`;
+  return `<div class="tw-item">
+    <img class="tw-photo" src="${esc(item.image)}" alt="">
+    <div><div class="tw-who">${whoLabel}</div><div class="tw-name">${esc(item.title)}</div>
+    <div class="tw-meta">${esc(item.category)} · ${esc(item.condition)}</div>
+    ${item.cashPrice ? `<div class="tw-price">$${moneyFmt(item.cashPrice)}</div>` : ''}</div>
+  </div>`;
+}
+function twCashCard(amount, whoLabel) {
+  return `<div class="tw-item"><div class="tw-photo tw-cash"><span>$</span></div>
+    <div><div class="tw-who">${whoLabel}</div><div class="tw-name">$${moneyFmt(amount)} cash</div><div class="tw-meta">Cash offer</div></div></div>`;
+}
+// RuneScape-style value check, visualized at the decision point.
+function fairnessHTML(o, mine, theirs) {
+  let myP = null, theirP = null;
+  if (o.type === 'cash') {
+    const itemP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+    if (o.direction === 'received') { myP = itemP; theirP = +o.cashAmount; }
+    else { myP = +o.cashAmount; theirP = itemP; }
+  } else {
+    myP = mine && mine.cashPrice ? +mine.cashPrice : null;
+    theirP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+  }
+  if (!myP || !theirP) return '';
+  const ratio = Math.max(myP, theirP) / Math.min(myP, theirP);
+  const ok = ratio <= 3;
+  return `<div class="tw-fair ${ok ? 'ok' : 'warn'}">${ok ? TW_CHECK_SVG : TW_WARN_SVG}
+    <div><div class="tw-fair-t">${ok ? 'Fair trade — values are close' : 'Values are far apart'}</div>
+    <div class="tw-fair-s">$${moneyFmt(myP)} ⇄ $${moneyFmt(theirP)} · ${ok ? 'within' : 'outside'} fair range</div></div></div>`;
+}
+function twNoteHTML(o, otherName) {
+  if (!o.message) return '';
+  const isMine = o.direction === 'sent';
+  const label = isMine ? 'Your note' : `${esc(otherName)}'s note`;
+  const initials = isMine ? ME.initials : initialsOf(o.from);
+  return `<div class="tw-sec-label">${label}</div>
+  <div class="tw-note"><div class="tw-note-avatar">${esc(initials)}</div>
+  <div><div class="tw-note-sub">Attached to this offer</div><div class="tw-note-text">“${esc(o.message)}”</div></div></div>`;
 }
 function openTradeWindow(id, step) {
   const o = state.offers.find(x => x.id === id);
@@ -852,22 +896,18 @@ function openTradeWindow(id, step) {
   const mine = itemById(o.myItemId);
   const otherName = o.direction === 'received' ? o.from : (theirs ? theirs.owner : 'Trader');
   const box = $('#tradeWindowContent');
-  const cashCard = o.type === 'cash'
-    ? `<div class="mini-item"><div><div class="mi-title">$${esc(o.cashAmount)} cash</div><div class="mi-sub">Cash offer</div></div></div>`
-    : null;
+  const theirWho = `${esc(otherName)} offers`;
   // For cash offers, theirItemId is the item being bought; one side is cash.
-  const cashItem = o.type === 'cash' ? theirs : null;
-  const myPaneCard = o.type === 'cash'
-    ? (o.direction === 'received' ? tradeItemCard(cashItem, 'Item removed') : cashCard)
-    : tradeItemCard(mine, 'Item removed');
-  const theirPaneCard = o.type === 'cash'
-    ? (o.direction === 'received' ? cashCard : tradeItemCard(cashItem, 'Item removed'))
-    : tradeItemCard(theirs, 'Item removed');
-  const panes = `<div class="trade-panes">
-    <div class="trade-pane"><div class="side-label">You're offering</div>${myPaneCard}</div>
-    <div class="trade-divider"><span class="material-symbols-outlined">swap_horiz</span></div>
-    <div class="trade-pane"><div class="side-label">They're offering</div>${theirPaneCard}</div>
-  </div>`;
+  const mySide = o.type === 'cash'
+    ? (o.direction === 'received' ? twItemCard(theirs, 'You offer', 'Item removed') : twCashCard(o.cashAmount, 'You offer'))
+    : twItemCard(mine, 'You offer', 'Item removed');
+  const theirSide = o.type === 'cash'
+    ? (o.direction === 'received' ? twCashCard(o.cashAmount, theirWho) : twItemCard(theirs, theirWho, 'Item removed'))
+    : twItemCard(theirs, theirWho, 'Item removed');
+  const duel = `<div class="tw-duel">${mySide}<div class="tw-for"><span>for</span></div>${theirSide}</div>`;
+  const fair = fairnessHTML(o, mine, theirs);
+  const note = twNoteHTML(o, otherName);
+  const head = title => `<h2 class="tw-title">${title}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span>`;
   if (o.status === 'Completed') {
     const existing = state.ratings.find(r => r.offerId === o.id);
     const ratingSection = existing
@@ -876,7 +916,7 @@ function openTradeWindow(id, step) {
         <div class="rating-stars" id="ratingStars">${[1, 2, 3, 4, 5].map(n => `<button class="star-pick" data-stars="${n}"><span class="material-symbols-outlined">star</span></button>`).join('')}</div>
         <textarea id="ratingComment" rows="2" placeholder="Anything to add? (optional)"></textarea>
         <button class="btn btn-primary" id="ratingSubmit">Submit Rating</button></div>`;
-    box.innerHTML = `<h2>Trade completed</h2><p class="muted">You traded with ${esc(otherName)}.</p>${panes}${ratingSection}`;
+    box.innerHTML = `${head('Trade completed')}<p class="muted">You traded with ${esc(otherName)}.</p>${duel}${fair}${ratingSection}`;
     let picked = 0;
     $$('#ratingStars .star-pick').forEach(b => b.addEventListener('click', () => {
       picked = +b.dataset.stars;
@@ -891,14 +931,14 @@ function openTradeWindow(id, step) {
       openTradeWindow(id);
     });
   } else if (o.status === 'Declined' || o.status === 'Cancelled') {
-    box.innerHTML = `<h2>Trade ${o.status.toLowerCase()}</h2><p class="muted">This offer is no longer active.</p>${panes}`;
+    box.innerHTML = `${head('Trade ' + o.status.toLowerCase())}<p class="muted">This offer is no longer active.</p>${duel}${fair}`;
   } else if (o.status === 'Awaiting confirmation') {
-    box.innerHTML = `<h2>Waiting for confirmation</h2><p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${panes}`;
+    box.innerHTML = `${head('Waiting for confirmation')}<p class="muted">You confirmed. Waiting for ${esc(otherName)} to confirm.</p>${duel}${fair}`;
   } else if (step === 'confirm') {
     const feeLine = o.type === 'cash'
-      ? ` A 5% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.95).toFixed(2)} of $${esc(o.cashAmount)}.`
+      ? ` A 5% TradeHub fee applies to this cash payment — the seller receives $${(o.cashAmount * 0.95).toFixed(2)} of $${moneyFmt(o.cashAmount)}.`
       : '';
-    box.innerHTML = `<h2>Confirm this trade</h2><p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${panes}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
+    box.innerHTML = `${head('Confirm this trade')}<p class="muted">Double-check both sides. Both traders must confirm before the trade is final.</p>${duel}${fair}<p class="safety-note">Meeting up? Meet in a public place during the day, bring a friend, and inspect both items before confirming.</p><p class="promise-note">Item trades are free.${feeLine}</p><div class="form-actions"><button class="btn btn-ghost" id="twBack">Go back</button><button class="btn btn-primary" id="twConfirm">Confirm Trade</button></div>`;
     $('#twBack').addEventListener('click', () => openTradeWindow(id));
     $('#twConfirm').addEventListener('click', () => {
       o.status = 'Awaiting confirmation';
@@ -916,11 +956,11 @@ function openTradeWindow(id, step) {
       }, 2500);
     });
   } else if (o.direction === 'received') {
-    box.innerHTML = `<h2>Trade with ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="offer-msg" style="margin-top:12px">${esc(o.message)}</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button></div>`;
+    box.innerHTML = `${head('Trade with ' + esc(otherName))}${duel}${fair}${note}<div class="form-actions"><button class="btn btn-outline" id="twDecline">Decline</button><button class="btn btn-primary" id="twAccept">Accept Trade</button></div><p class="safety-note">Meet in a public place during the day. Inspect both items before confirming.</p>`;
     $('#twDecline').addEventListener('click', () => { o.status = 'Declined'; save(); toast('Offer declined.'); renderTrades(); openTradeWindow(id); });
     $('#twAccept').addEventListener('click', () => openTradeWindow(id, 'confirm'));
   } else {
-    box.innerHTML = `<h2>Offer to ${esc(otherName)}</h2><span class="status ${statusClass(o.status)}">${esc(o.status)}</span><p class="muted" style="margin-top:12px">Waiting for ${esc(otherName)} to respond.</p>${panes}<div class="form-actions"><button class="btn btn-outline" id="twCancel">Cancel Offer</button></div>`;
+    box.innerHTML = `${head('Offer to ' + esc(otherName))}<p class="muted">Waiting for ${esc(otherName)} to respond.</p>${duel}${fair}${note}<div class="form-actions"><button class="btn btn-outline" id="twCancel">Cancel Offer</button></div>`;
     $('#twCancel').addEventListener('click', () => { o.status = 'Cancelled'; save(); toast('Offer cancelled.'); renderTrades(); openTradeWindow(id); });
   }
   box.insertAdjacentHTML('afterbegin', '<button class="modal-x" id="twX" aria-label="Close">×</button>');
@@ -946,6 +986,19 @@ function updateMsgBadge() {
   const badge = $('#msgBadge');
   badge.textContent = total;
   badge.classList.toggle('hidden', total === 0);
+}
+// Open (or start) a conversation with a trader about one of their items.
+function openConversationWith(owner, itemId) {
+  const item = itemById(itemId);
+  let c = state.conversations.find(x => x.with === owner && x.itemId === itemId && x.folder !== 'trash');
+  if (!c) {
+    c = { id: Date.now(), with: owner, initials: item ? item.ownerInitials : initialsOf(owner), itemId, folder: 'sent', unread: 0, messages: [] };
+    state.conversations.unshift(c);
+    save();
+  }
+  activeConvo = c.id;
+  currentFolder = c.folder;
+  nav('messages');
 }
 function renderMessages() {
   updateMsgBadge();
@@ -1007,7 +1060,7 @@ function renderMessages() {
     <div class="thread-head">
       <button class="thread-back" id="threadBack"><span class="material-symbols-outlined">arrow_back</span></button>
       <span class="avatar">${esc(convo.initials)}</span>
-      <div class="thread-who"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">Conversation about your listing</div></div>
+      <div class="thread-who"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">${item ? `About “${esc(item.title)}”` : 'Direct message'}</div></div>
       <div class="thread-actions">
         ${inTrash
           ? `<button class="thread-action" id="restoreBtn">Restore</button><button class="thread-action danger" id="deleteForeverBtn">Delete forever</button>`
