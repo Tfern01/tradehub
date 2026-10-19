@@ -25,16 +25,13 @@
       <h1 class="auth-title">Welcome to TradeHub</h1>
       <p class="muted">Trade locally, item for item. Your account is standalone — no Facebook, Google, or PayPal login, ever.</p>
       <p class="promise-line"><b>Item trades are free</b> — you keep 100%. Cash payments include a 5% TradeHub fee.</p>
-      <div class="auth-tabs">
-        <button class="auth-tab active" data-auth-tab="signin">Sign in</button>
-        <button class="auth-tab" data-auth-tab="signup">Create account</button>
-      </div>
       <form id="signinForm" class="auth-form">
         <label>Email <input id="siEmail" type="email" required autocomplete="email"></label>
         <label>Password <input id="siPass" type="password" required autocomplete="current-password"></label>
         <p id="siError" class="auth-error hidden"></p>
         <button type="submit" class="btn btn-primary auth-submit">Sign in</button>
       </form>
+      <p class="auth-switch">New to TradeHub? <button type="button" class="linklike" id="goSignup">Create an account</button></p>
       <div class="auth-divider"><span>or</span></div>
       <button class="btn btn-outline auth-submit" id="demoSignin">Explore the demo</button>
       <p class="muted auth-demo-note">Demo account: alex@demo.tradehub / demo1234</p>

@@ -138,14 +138,9 @@ function goBack() {
 $('#detailBack').addEventListener('click', goBack);
 
 // ---------- AUTH ----------
-// Sign-in stays on the auth view; "Create account" now opens the
-// 4-step onboarding flow instead of an inline form.
-$$('.auth-tab').forEach(t => t.addEventListener('click', () => {
-  $$('.auth-tab').forEach(x => x.classList.toggle('active', x === t));
-  const tab = t.dataset.authTab;
-  if (tab === 'signup') { nav('onboard'); obShow(1); return; }
-  $('#signinForm').classList.toggle('hidden', tab !== 'signin');
-}));
+// Sign-in lives on the auth view; "Create an account" opens the
+// 4-step onboarding flow.
+$('#goSignup').addEventListener('click', () => { nav('onboard'); obShow(1); });
 function authError(id, msg) {
   const el = $(id);
   el.textContent = msg;
@@ -486,7 +481,7 @@ function renderHome() {
     return `<button class="cat-tile" data-cat="${c.name}"><span class="tic" style="background:${c.bg};color:${c.fg}">${c.svg}</span><b>${c.name}</b><span>${n} item${n === 1 ? '' : 's'}</span></button>`;
   };
   $('#homeContent').innerHTML = `
-    <div class="home-welcome"><h1>Welcome back, Alex</h1></div>
+    <div class="home-welcome"><h1>Welcome back</h1></div>
     ${pending.length ? `<div class="home-section"><div class="home-section-head"><h2>Pending offers</h2><button class="see-all" data-nav="trades">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${pending.slice(0, 2).map(offerRow).join('')}</div>` : ''}
     ${unreadConvos.length ? `<div class="home-section"><div class="home-section-head"><h2>Unread messages</h2><button class="see-all" data-nav="messages">See all <span class="material-symbols-outlined icon-inline">arrow_forward</span></button></div>${unreadConvos.map(c => {
       const last = c.messages[c.messages.length - 1];
