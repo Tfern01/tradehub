@@ -334,6 +334,11 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .tw-note-avatar{width:36px;height:36px;border-radius:50%;background:#059669;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .tw-note-sub{font-size:12.5px;font-weight:600;color:var(--text-muted);margin-bottom:2px}
 .tw-note-text{font-size:14px;line-height:1.45}
+/* Proposal modal (separate from the trade window) */
+.trade-panes{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;margin:16px 0}
+@media(max-width:520px){.trade-panes{grid-template-columns:1fr}.trade-divider{transform:rotate(90deg);justify-self:center}}
+.trade-pane .mini-item{margin:0}
+.trade-divider{display:flex;align-items:center;justify-content:center;color:var(--text-muted);padding-top:28px}
 .offer-tap-hint{font-size:12px;color:var(--text-muted);margin-top:8px;display:flex;align-items:center;gap:2px;justify-content:flex-start}
 .cash-note{font-size:12px;color:var(--text-muted);margin-top:4px}
 .cash-confirm{background:var(--bg-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-top:12px}
