@@ -82,16 +82,17 @@ function accountToME(acc) {
 }
 // Profile banner gradients the user can pick from in the editor.
 const BANNERS = {
-  ocean:  ['#1D3A6E', '#0064E0', '#7BA7E8'],
-  sunset: ['#7C2D12', '#EA580C', '#F59E0B'],
-  rose:   ['#831843', '#DB2777', '#F9A8D4'],
-  grape:  ['#4C1D95', '#7C3AED', '#C4B5FD'],
-  forest: ['#064E3B', '#059669', '#6EE7B7'],
-  teal:   ['#134E4A', '#0D9488', '#5EEAD4'],
-  sky:    ['#0C4A6E', '#0284C7', '#7DD3FC'],
-  slate:  ['#0F172A', '#334155', '#94A3B8'],
+  ocean:  { name: 'Ocean',  stops: ['#1D3A6E', '#0064E0', '#7BA7E8'] },
+  sunset: { name: 'Sunset', stops: ['#7C2D12', '#EA580C', '#F59E0B'] },
+  rose:   { name: 'Rose',   stops: ['#831843', '#DB2777', '#F9A8D4'] },
+  grape:  { name: 'Grape',  stops: ['#4C1D95', '#7C3AED', '#C4B5FD'] },
+  forest: { name: 'Forest', stops: ['#064E3B', '#059669', '#6EE7B7'] },
+  teal:   { name: 'Teal',   stops: ['#134E4A', '#0D9488', '#5EEAD4'] },
+  sky:    { name: 'Sky',    stops: ['#0C4A6E', '#0284C7', '#7DD3FC'] },
+  slate:  { name: 'Slate',  stops: ['#0F172A', '#334155', '#94A3B8'] },
 };
-const bannerCSS = key => 'linear-gradient(120deg,' + (BANNERS[key] || BANNERS.ocean).join(',') + ')';
+const bannerCSS = key => 'linear-gradient(120deg,' + (BANNERS[key] || BANNERS.ocean).stops.join(',') + ')';
+const bannerName = key => (BANNERS[key] || BANNERS.ocean).name;
 // My avatar as an <img> when a photo is set, initials otherwise.
 function myAvatarHTML(sizeCls) {
   return ME.avatar
@@ -805,7 +806,7 @@ const openProfileEditor = () => {
   $('#pfBio').value = acc.bio || '';
   $('#pfHandleErr').classList.add('hidden');
   renderAvatarPreview(pendingAvatar);
-  renderSwatches();
+  renderStrip();
   $('#editProfileModal').classList.remove('hidden');
 };
 function renderAvatarPreview(dataURL) {
@@ -815,15 +816,46 @@ function renderAvatarPreview(dataURL) {
     ? `<img class="avatar xl avatar-photo" src="${src}" alt="">`
     : `<span class="avatar xl">${esc((ME.initials || '??'))}</span>`;
 }
-function renderSwatches() {
-  const box = $('#pfSwatches');
+function renderStrip() {
+  const strip = $('#pfBannerStrip');
+  if (strip) strip.style.background = bannerCSS(pendingBanner);
+}
+// Banner color preview modal (Take A + color names): mini profile repaints
+// live; Apply writes back to the sheet's pending banner.
+let bmSelected = 'ocean';
+function openBannerModal() {
+  bmSelected = pendingBanner || 'ocean';
+  $('#bmName').textContent = $('#pfName').value.trim() || ME.name;
+  $('#bmHandle').textContent = ($('#pfHandle').value.trim() || ME.handle) + ' \u00b7 ' + ME.location;
+  const mine = state.items.filter(i => i.owner === ME.name).length;
+  $('#bmStats').innerHTML = `<span><b>\u2605 ${ME.rating}</b> Rating</span><span><b>${ME.trades}</b> Trades</span><span><b>${mine}</b> Items</span>`;
+  const src = pendingAvatar || ME.avatar;
+  $('#bmAvatar').innerHTML = src
+    ? `<img class="mini-avatar avatar-photo" src="${src}" alt="">`
+    : `<span class="mini-avatar mini-initials">${esc(ME.initials)}</span>`;
+  renderBmSwatches();
+  $('#bannerModal').classList.remove('hidden');
+}
+function renderBmSwatches() {
+  $('#bmCover').style.background = bannerCSS(bmSelected);
+  $('#bmColorName').textContent = bannerName(bmSelected);
+  $('#bmApply').textContent = 'Use ' + bannerName(bmSelected).toLowerCase();
+  const box = $('#bmSwatches');
   box.innerHTML = Object.keys(BANNERS).map(k =>
-    `<button type="button" class="swatch ${pendingBanner === k ? 'on' : ''}" data-banner="${k}" style="background:${bannerCSS(k)}" aria-label="${k}"></button>`).join('');
+    `<button type="button" class="swatch ${bmSelected === k ? 'on' : ''}" data-banner="${k}" style="background:${bannerCSS(k)}" aria-label="${bannerName(k)}"></button>`).join('');
   box.querySelectorAll('.swatch').forEach(b => b.addEventListener('click', () => {
-    pendingBanner = b.dataset.banner;
-    renderSwatches();
+    bmSelected = b.dataset.banner;
+    renderBmSwatches();
   }));
 }
+$('#pfBannerEdit').addEventListener('click', openBannerModal);
+$('#bmCancel').addEventListener('click', () => $('#bannerModal').classList.add('hidden'));
+$('#bannerModal').addEventListener('click', e => { if (e.target.id === 'bannerModal') $('#bannerModal').classList.add('hidden'); });
+$('#bmApply').addEventListener('click', () => {
+  pendingBanner = bmSelected;
+  renderStrip();
+  $('#bannerModal').classList.add('hidden');
+});
 $('#pfPhoto').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
   try {

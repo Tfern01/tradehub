@@ -259,6 +259,10 @@
     <button class="modal-x" id="profileEditClose" aria-label="Close">×</button>
     <h2>Edit profile</h2>
     <p class="muted" style="margin-bottom:16px">This is how other traders see you.</p>
+    <div class="pf-banner-strip" id="pfBannerStrip">
+      <span class="pf-banner-cap">Banner</span>
+      <button type="button" class="pf-banner-edit" id="pfBannerEdit" aria-label="Change banner color"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+    </div>
     <div class="pf-photo-row">
       <span id="pfAvatarPreview"></span>
       <div>
@@ -271,8 +275,27 @@
     <div class="field" style="margin-bottom:12px"><label for="pfHandle">Handle</label><input id="pfHandle" type="text" maxlength="21" autocomplete="off" placeholder="@name"><p class="fl-hint">Letters, numbers, dots and underscores.</p><p class="field-err hidden" id="pfHandleErr"></p></div>
     <div class="field" style="margin-bottom:12px"><label for="pfCity">Location</label><input id="pfCity" type="text" maxlength="60" autocomplete="off" placeholder="City, ST"></div>
     <div class="field" style="margin-bottom:14px"><label for="pfBio">Bio</label><textarea id="pfBio" rows="3" maxlength="160"></textarea></div>
-    <div class="field" style="margin-bottom:14px"><label>Banner color</label><div class="swatches" id="pfSwatches"></div></div>
     <div class="form-actions"><button class="btn btn-primary" id="profileSave" style="flex:1">Save changes</button></div>
+  </div>
+</div>
+
+<!-- BANNER COLOR (preview modal) -->
+<div id="bannerModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Banner color</h2>
+    <p class="muted" style="margin-bottom:14px">Here's how your profile will look.</p>
+    <div class="mini-profile">
+      <div class="mini-cover" id="bmCover"></div>
+      <div class="mini-body">
+        <span id="bmAvatar"></span>
+        <div class="mini-name" id="bmName"></div>
+        <div class="mini-handle" id="bmHandle"></div>
+        <div class="mini-stats" id="bmStats"></div>
+      </div>
+    </div>
+    <div class="bm-colorname" id="bmColorName">Ocean</div>
+    <div class="swatches" id="bmSwatches"></div>
+    <div class="form-actions" style="margin-top:16px"><button class="btn btn-outline" id="bmCancel" style="flex:1">Cancel</button><button class="btn btn-primary" id="bmApply" style="flex:1">Use ocean</button></div>
   </div>
 </div>
 
