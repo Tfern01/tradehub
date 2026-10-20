@@ -467,3 +467,51 @@ body.on-auth .bottomnav,body.on-auth .header-actions{display:none}
 .offer-review{width:100%;margin-top:10px;border:0;background:#0064E0;color:#fff;border-radius:12px;padding:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
 /* Quieter timestamps */
 .bubble-time{color:#AEAEB2}
+
+/* ---------- PROFILE PASS ---------- */
+.profile-card{flex-direction:column;padding:0;overflow:hidden;align-items:stretch}
+.profile-card>div{display:flex;flex-direction:column;align-items:flex-start;text-align:left}
+.profile-cover{height:120px;width:100%;border-radius:0;flex-shrink:0}
+.profile-main{padding:0 24px 24px;width:100%}
+.profile-avatar-wrap{position:relative;margin-top:-44px;flex-shrink:0}
+.avatar.xl{width:88px;height:88px;font-size:30px;border:4px solid #fff}
+.avatar-photo{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.cam-badge{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--action);border:3px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.cam-badge svg{width:14px;height:14px;color:#fff}
+.profile-card .handle{color:var(--text-secondary);font-size:15px;margin:4px 0 0}
+.profile-card .handle .dot{margin:0 6px;color:var(--text-muted)}
+.profile-edit-btn{width:100%;margin-top:16px}
+/* Bottom-sheet style for the profile editor */
+.sheet-modal{align-items:flex-end;padding:0}
+.sheet-modal .modal-card{border-radius:22px 22px 0 0;max-width:560px;width:100%;max-height:92vh;overflow-y:auto;margin:0}
+.sheet-grabber{width:40px;height:5px;border-radius:999px;background:#D1D1D6;margin:0 auto 14px}
+.pf-photo-row{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.pf-hint{margin:8px 0 0 !important}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.swatch{width:44px;height:44px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0;flex-shrink:0}
+.swatch.on{border-color:var(--action);box-shadow:0 0 0 2px #fff,0 0 0 4px var(--action)}
+.btn-sm{padding:7px 14px !important;font-size:13px !important;border-radius:999px !important}
+.field-err{color:var(--danger);font-size:13px;margin:-6px 0 12px}
+.fl-hint{font-size:12.5px;color:var(--text-muted);margin:6px 0 0}
+/* Account card */
+.account-card{padding:6px 20px;margin-bottom:20px}
+.acct-row{display:flex;align-items:center;width:100%;border:0;background:none;font:inherit;font-size:15.5px;font-weight:600;color:var(--text-primary);padding:14px 2px;cursor:pointer;text-align:left}
+.acct-row+.acct-row{border-top:1px solid var(--border-subtle)}
+.acct-row .acct-chev{margin-left:auto;color:var(--text-muted);font-size:18px}
+.acct-row.danger{color:var(--danger)}
+/* Interests manage mode */
+.interest-count{font-size:12px;color:var(--text-muted);align-self:center;margin-left:4px}
+.interest-addrow{position:relative;margin:2px 0 4px}
+.interest-addrow input{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px 14px;font:inherit;font-size:15px;background:#fff;outline:0;color:var(--text-primary)}
+.interest-addrow input:focus{border-color:var(--action)}
+.tag-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border-subtle);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:30;overflow:hidden}
+.tag-dd button{display:block;width:100%;text-align:left;border:0;background:none;padding:12px 16px;font:inherit;font-size:14.5px;cursor:pointer;color:var(--text-primary)}
+.tag-dd button+button{border-top:1px solid var(--border-subtle)}
+.tag-dd button:hover{background:var(--bg-input)}
+/* Place autocomplete dropdown */
+.place-dd{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--border-subtle);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.14);z-index:40;overflow:hidden}
+.place-dd button{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 16px;font:inherit;cursor:pointer;color:var(--text-primary)}
+.place-dd button+button{border-top:1px solid var(--border-subtle)}
+.place-dd button b{display:block;font-size:14.5px}
+.place-dd button span{display:block;font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place-dd button:hover{background:var(--bg-input)}

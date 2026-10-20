@@ -77,7 +77,31 @@ function getSessionAccount() {
 function accountToME(acc) {
   const parts = acc.name.trim().split(/\s+/);
   const initials = ((parts[0] || '')[0] || '') + ((parts[parts.length - 1] || '')[0] || '');
-  return { name: acc.name, handle: '@' + acc.email.split('@')[0].replace(/[^a-z0-9._]/gi, ''), location: acc.city, since: acc.createdAt ? new Date(acc.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'January 2024', rating: acc.rating ?? '—', trades: acc.trades ?? 0, bio: acc.bio || 'New trader on TradeHub.', initials: initials.toUpperCase(), color: '#DBEAFE', text: '#155DFC' };
+  const derivedHandle = '@' + acc.email.split('@')[0].replace(/[^a-z0-9._]/gi, '');
+  return { name: acc.name, handle: acc.handle || derivedHandle, location: acc.city, since: acc.createdAt ? new Date(acc.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'January 2024', rating: acc.rating ?? '—', trades: acc.trades ?? 0, bio: acc.bio || 'New trader on TradeHub.', initials: initials.toUpperCase(), avatar: acc.avatar || null, banner: acc.banner || 'ocean', color: '#DBEAFE', text: '#155DFC' };
+}
+// Profile banner gradients the user can pick from in the editor.
+const BANNERS = {
+  ocean:  ['#1D3A6E', '#0064E0', '#7BA7E8'],
+  sunset: ['#7C2D12', '#EA580C', '#F59E0B'],
+  rose:   ['#831843', '#DB2777', '#F9A8D4'],
+  grape:  ['#4C1D95', '#7C3AED', '#C4B5FD'],
+  forest: ['#064E3B', '#059669', '#6EE7B7'],
+  teal:   ['#134E4A', '#0D9488', '#5EEAD4'],
+  sky:    ['#0C4A6E', '#0284C7', '#7DD3FC'],
+  slate:  ['#0F172A', '#334155', '#94A3B8'],
+};
+const bannerCSS = key => 'linear-gradient(120deg,' + (BANNERS[key] || BANNERS.ocean).join(',') + ')';
+// My avatar as an <img> when a photo is set, initials otherwise.
+function myAvatarHTML(sizeCls) {
+  return ME.avatar
+    ? `<img class="avatar ${sizeCls} avatar-photo" src="${ME.avatar}" alt="">`
+    : `<span class="avatar ${sizeCls}">${esc(ME.initials)}</span>`;
+}
+function syncHeaderAvatar() {
+  const ha = $('#headerAvatar');
+  if (!ha) return;
+  ha.innerHTML = ME.avatar ? `<img class="avatar-photo" src="${ME.avatar}" alt="">` : esc(ME.initials || initialsOf(ME.name));
 }
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -120,8 +144,7 @@ function nav(view, push = true) {
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#view-' + view).classList.add('active');
   $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.nav === view));
-  const ha = $('#headerAvatar');
-  if (ha) ha.textContent = ME.initials || initialsOf(ME.name);
+  syncHeaderAvatar();
   window.scrollTo(0, 0);
   if (view === 'home') renderHome();
   if (view === 'discover') renderBrowse();
@@ -339,24 +362,74 @@ const completedTrades = () => state.offers.filter(o => o.status === 'Completed')
 const interestTags = () => state.interests.map(t => t.toLowerCase());
 const matchesInterests = i => { const tags = interestTags(); return tags.length > 0 && tags.some(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t)); };
 const matchingTag = i => interestTags().find(t => (i.title + ' ' + i.desc + ' ' + i.category).toLowerCase().includes(t));
-function interestTagsHTML() {
+let interestsEditing = false;
+function interestTagsHTML(editing) {
   return '<div class="interest-tags">'
-    + state.interests.map(t => '<span class="interest-tag">' + esc(t) + '<button data-rmtag="' + esc(t) + '" aria-label="Remove interest">\u00d7</button></span>').join('')
-    + '<button class="interest-add" data-addinterest><span class="material-symbols-outlined icon-inline">add</span> Add</button></div>';
+    + state.interests.map(t => '<span class="interest-tag">' + esc(t) + (editing ? '<button data-rmtag="' + esc(t) + '" aria-label="Remove interest">\u00d7</button>' : '') + '</span>').join('')
+    + (editing ? '' : '<span class="interest-count">' + state.interests.length + ' of 12</span>') + '</div>';
 }
-function openInterestModal() {
-  $('#interestInput').value = '';
-  renderSuggestions();
-  $('#interestModal').classList.remove('hidden');
-  setTimeout(() => $('#interestInput').focus(), 60);
+function addInterest(v) {
+  v = (v || '').trim().toLowerCase();
+  if (!v) return false;
+  if (state.interests.some(t => t.toLowerCase() === v)) { toast('Already in your list.'); return false; }
+  if (state.interests.length >= 12) { toast('Max 12 interests.'); return false; }
+  state.interests.push(v); save(); return true;
 }
-function bindInterestTags(root) {
-  root.querySelectorAll('[data-rmtag]').forEach(b => b.addEventListener('click', () => {
+// Vocabulary for the autocomplete: live suggestions + explore staples +
+// categories + words from nearby listings, minus held tags.
+function tagVocabulary() {
+  const v = new Set(), have = new Set(interestTags());
+  suggestedTags().forEach(t => v.add(t.toLowerCase()));
+  ['keyboards', 'vinyl', 'bikes', 'espresso', 'film', 'sneakers', 'books', 'plants', 'guitars', 'camping', 'audio', 'cameras', 'furniture', 'tools', 'games', 'watches', 'art', 'records', 'outdoor', 'music'].forEach(t => v.add(t));
+  [...new Set(state.items.map(i => i.category.toLowerCase()))].forEach(t => v.add(t));
+  state.items.forEach(i => (i.title + ' ' + (i.desc || '')).toLowerCase().split(/[^a-z0-9]+/).forEach(w => { if (w.length >= 3) v.add(w); }));
+  return [...v].filter(t => !have.has(t));
+}
+function tagSuggestionsFor(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return [];
+  const vocab = tagVocabulary();
+  const starts = vocab.filter(t => t.startsWith(q));
+  const contains = vocab.filter(t => !t.startsWith(q) && t.includes(q));
+  return [...starts, ...contains].slice(0, 6);
+}
+// Wire the Profile interests section: Manage toggles edit mode (tags get an
+// ×, an add field appears with autocomplete that anticipates from the
+// nearby-listings vocabulary).
+function bindInterestSection() {
+  const mg = $('#interestsManageBtn');
+  if (mg) mg.addEventListener('click', () => {
+    interestsEditing = !interestsEditing;
+    renderProfile();
+    if (interestsEditing) { const inp = $('#interestAddInput'); if (inp) inp.focus({ preventScroll: true }); }
+  });
+  $$('#profileContent [data-rmtag]').forEach(b => b.addEventListener('click', () => {
     state.interests = state.interests.filter(t => t !== b.dataset.rmtag);
     save();
-    if (currentView === 'home') renderHome(); else renderProfile();
+    renderProfile();
+    const inp = $('#interestAddInput'); if (inp) inp.focus({ preventScroll: true });
   }));
-  root.querySelectorAll('[data-addinterest]').forEach(b => b.addEventListener('click', openInterestModal));
+  const inp = $('#interestAddInput'), dd = $('#tagDD');
+  if (!inp || !dd) return;
+  const showSug = () => {
+    const sug = tagSuggestionsFor(inp.value);
+    if (!sug.length) { dd.classList.add('hidden'); return; }
+    dd.innerHTML = sug.map(t => `<button type="button" data-tagpick="${esc(t)}">${esc(t)}</button>`).join('');
+    dd.classList.remove('hidden');
+    dd.querySelectorAll('[data-tagpick]').forEach(b => b.addEventListener('mousedown', e => {
+      e.preventDefault();
+      if (addInterest(b.dataset.tagpick)) { inp.value = ''; dd.classList.add('hidden'); renderProfile(); const n = $('#interestAddInput'); if (n) n.focus({ preventScroll: true }); }
+    }));
+  };
+  inp.addEventListener('input', showSug);
+  inp.addEventListener('focus', showSug);
+  inp.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 150));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (addInterest(inp.value)) { inp.value = ''; dd.classList.add('hidden'); renderProfile(); const n = $('#interestAddInput'); if (n) n.focus({ preventScroll: true }); }
+    }
+  });
 }
 // Tap-to-add suggestions, derived from what's actually listed nearby.
 function suggestedTags() {
@@ -370,21 +443,6 @@ function suggestedTags() {
   }));
   const words = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
   return [...cats, ...words].slice(0, 8);
-}
-function renderSuggestions() {
-  const box = $('#suggestRow');
-  const sug = suggestedTags();
-  box.innerHTML = sug.length
-    ? sug.map(t => '<button class="suggest-chip" data-suggest="' + esc(t) + '">' + esc(t) + '</button>').join('')
-    : '<span class="muted">No suggestions right now — type your own above.</span>';
-  box.querySelectorAll('[data-suggest]').forEach(b => b.addEventListener('click', () => {
-    const v = b.dataset.suggest;
-    if (!state.interests.some(t => t.toLowerCase() === v.toLowerCase()) && state.interests.length < 12) {
-      state.interests.push(v); save();
-    }
-    renderSuggestions();
-    if (currentView === 'home') renderHome(); else renderProfile();
-  }));
 }
 // Declared wants per trader (demo seed). In production this comes from each
 // trader's own "Interested in" profile section — the other half of the trade.
@@ -651,13 +709,12 @@ $('#tradeConfirm').addEventListener('click', () => {
 // Photo-first listing: snap a pic or pick one, compressed so it fits in
 // browser storage. No image URL needed.
 let pendingPhoto = null;
-function fileToCompressedDataURL(file) {
+function fileToCompressedDataURL(file, max = 1200) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const max = 1200;
         const scale = Math.min(1, max / Math.max(img.width, img.height));
         const w = Math.round(img.width * scale);
         const h = Math.round(img.height * scale);
@@ -737,33 +794,72 @@ $('#successView').addEventListener('click', () => { hideSuccess(); nav('profile'
 $('#successAgain').addEventListener('click', () => { hideSuccess(); nav('add'); });
 $('#successClose').addEventListener('click', () => { hideSuccess(); nav('profile'); });
 $('#listSuccessModal').addEventListener('click', e => { if (e.target.id === 'listSuccessModal') { hideSuccess(); nav('profile'); } });
-const addInterest = () => {
-  const v = $('#interestInput').value.trim();
-  if (v && !state.interests.some(t => t.toLowerCase() === v.toLowerCase()) && state.interests.length < 12) {
-    state.interests.push(v);
-    save();
-  }
-  $('#interestInput').value = '';
-  $('#interestModal').classList.add('hidden');
-  if (currentView === 'home') renderHome(); else if (currentView === 'profile') renderProfile();
-};
-$('#interestAdd').addEventListener('click', addInterest);
-$('#interestInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addInterest(); } });
-$('#interestClose').addEventListener('click', () => $('#interestModal').classList.add('hidden'));
+
+let pendingAvatar = null, pendingBanner = null;
 const openProfileEditor = () => {
   const acc = getSessionAccount(); if (!acc) return;
+  pendingAvatar = null; pendingBanner = acc.banner || 'ocean';
   $('#pfName').value = acc.name || '';
+  $('#pfHandle').value = acc.handle || derivedHandleOf(acc);
   $('#pfCity').value = acc.city || '';
   $('#pfBio').value = acc.bio || '';
+  $('#pfHandleErr').classList.add('hidden');
+  renderAvatarPreview(pendingAvatar);
+  renderSwatches();
   $('#editProfileModal').classList.remove('hidden');
 };
+function renderAvatarPreview(dataURL) {
+  const prev = $('#pfAvatarPreview');
+  const src = dataURL !== null ? dataURL : (getSessionAccount() || {}).avatar;
+  prev.innerHTML = src
+    ? `<img class="avatar xl avatar-photo" src="${src}" alt="">`
+    : `<span class="avatar xl">${esc((ME.initials || '??'))}</span>`;
+}
+function renderSwatches() {
+  const box = $('#pfSwatches');
+  box.innerHTML = Object.keys(BANNERS).map(k =>
+    `<button type="button" class="swatch ${pendingBanner === k ? 'on' : ''}" data-banner="${k}" style="background:${bannerCSS(k)}" aria-label="${k}"></button>`).join('');
+  box.querySelectorAll('.swatch').forEach(b => b.addEventListener('click', () => {
+    pendingBanner = b.dataset.banner;
+    renderSwatches();
+  }));
+}
+$('#pfPhoto').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    pendingAvatar = await fileToCompressedDataURL(file, 400);
+    renderAvatarPreview(pendingAvatar);
+  } catch (err) { toast('Could not read that photo.'); }
+  e.target.value = '';
+});
 const saveProfile = () => {
   const acc = getSessionAccount(); if (!acc) return;
   const name = $('#pfName').value.trim() || acc.name;
   const oldName = acc.name;
+  // Handle: normalize, validate, keep unique across accounts.
+  let handle = $('#pfHandle').value.trim().replace(/^@+/, '').toLowerCase();
+  const herr = $('#pfHandleErr');
+  if (handle) {
+    if (!/^[a-z0-9._]{3,20}$/.test(handle)) {
+      herr.textContent = 'Use 3–20 characters: letters, numbers, dots, underscores.';
+      herr.classList.remove('hidden');
+      return;
+    }
+    const clash = accounts.some(a => a.email !== acc.email && ((a.handle || '').replace(/^@/, '').toLowerCase() === handle || (!a.handle && derivedHandleOf(a) === '@' + handle)));
+    if (clash) {
+      herr.textContent = 'That handle is taken.';
+      herr.classList.remove('hidden');
+      return;
+    }
+    handle = '@' + handle;
+  } else handle = null;
+  herr.classList.add('hidden');
   acc.name = name;
+  acc.handle = handle;
   acc.city = $('#pfCity').value.trim();
   acc.bio = $('#pfBio').value.trim();
+  if (pendingAvatar !== null) acc.avatar = pendingAvatar;
+  if (pendingBanner) acc.banner = pendingBanner;
   if (name !== oldName) {
     // A rename follows the trader everywhere: listings, offers, conversations.
     state.items.forEach(i => { if (i.owner === oldName) i.owner = name; });
@@ -773,18 +869,88 @@ const saveProfile = () => {
   }
   persistAccounts();
   ME = accountToME(acc);
-  const ha = $('#headerAvatar');
-  if (ha) ha.textContent = ME.initials || initialsOf(ME.name);
+  syncHeaderAvatar();
   $('#editProfileModal').classList.add('hidden');
   if (currentView === 'profile') renderProfile();
   toast('Profile updated.');
 };
+// Handle derived from email when a custom one was never set.
+function derivedHandleOf(a) {
+  return '@' + (a.email || '').split('@')[0].replace(/[^a-z0-9._]/gi, '');
+}
 $('#profileSave').addEventListener('click', saveProfile);
 $('#profileEditClose').addEventListener('click', () => $('#editProfileModal').classList.add('hidden'));
+
+// ---------- CHANGE PASSWORD ----------
+const openPasswordModal = () => {
+  ['pwCurrent', 'pwNew', 'pwConfirm'].forEach(id => $('#' + id).value = '');
+  $('#pwErr').classList.add('hidden');
+  $('#passwordModal').classList.remove('hidden');
+  setTimeout(() => $('#pwCurrent').focus(), 60);
+};
+$('#pwSave').addEventListener('click', async () => {
+  const acc = getSessionAccount(); if (!acc) return;
+  const err = $('#pwErr');
+  const fail = m => { err.textContent = m; err.classList.remove('hidden'); };
+  const cur = $('#pwCurrent').value, nw = $('#pwNew').value, cf = $('#pwConfirm').value;
+  if (acc.passHash && await sha256(cur) !== acc.passHash) return fail('Current password is not correct.');
+  if (nw.length < 8) return fail('New password needs at least 8 characters.');
+  if (nw !== cf) return fail('New passwords do not match.');
+  acc.passHash = await sha256(nw);
+  persistAccounts();
+  $('#passwordModal').classList.add('hidden');
+  toast('Password updated.');
+});
+$('#pwClose').addEventListener('click', () => $('#passwordModal').classList.add('hidden'));
+$('#passwordModal').addEventListener('click', e => { if (e.target.id === 'passwordModal') $('#passwordModal').classList.add('hidden'); });
+
+// ---------- PLACE AUTOCOMPLETE ----------
+// Nominatim-backed suggestions for city/location fields. Fails silent —
+// the field stays free text when offline.
+const STATE_ABBR = { alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO', connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY', 'district of columbia': 'DC' };
+function shortPlace(p) {
+  const a = p.address || {};
+  const city = a.city || a.town || a.village || a.hamlet || '';
+  const st = STATE_ABBR[(a.state || '').toLowerCase()] || '';
+  if (city && st) return city + ', ' + st;
+  return (p.display_name || '').split(',').slice(0, 2).join(',').trim();
+}
+let placeTimer = null;
+function attachPlaceAutocomplete(input) {
+  if (!input || input.dataset.placeAC) return;
+  input.dataset.placeAC = '1';
+  const wrap = input.closest('.field') || input.parentElement;
+  wrap.style.position = 'relative';
+  const dd = document.createElement('div');
+  dd.className = 'place-dd hidden';
+  wrap.appendChild(dd);
+  input.addEventListener('input', () => {
+    clearTimeout(placeTimer);
+    const q = input.value.trim();
+    if (q.length < 3) { dd.classList.add('hidden'); return; }
+    placeTimer = setTimeout(async () => {
+      try {
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&addressdetails=1&q=' + encodeURIComponent(q));
+        const js = await r.json();
+        if (!Array.isArray(js) || !js.length) { dd.classList.add('hidden'); return; }
+        dd.innerHTML = js.map((p, i) => `<button type="button" data-i="${i}"><b>${esc(shortPlace(p))}</b><span>${esc(p.display_name)}</span></button>`).join('');
+        dd.classList.remove('hidden');
+        dd.querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => {
+          e.preventDefault();
+          input.value = shortPlace(js[+b.dataset.i]);
+          dd.classList.add('hidden');
+        }));
+      } catch (e) { dd.classList.add('hidden'); }
+    }, 350);
+  });
+  input.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 150));
+}
+attachPlaceAutocomplete($('#obCity'));
+attachPlaceAutocomplete($('#pfCity'));
+
 $('#editProfileModal').addEventListener('click', e => { if (e.target.id === 'editProfileModal') $('#editProfileModal').classList.add('hidden'); });
 $('#pfName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveProfile(); } });
 $('#pfCity').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveProfile(); } });
-$('#interestModal').addEventListener('click', e => { if (e.target.id === 'interestModal') $('#interestModal').classList.add('hidden'); });
 $('#successShare').addEventListener('click', async () => {
   const item = itemById(lastListedId);
   const shareText = item ? `Check out "${item.title}" on TradeHub — trade locally!` : 'Check out TradeHub — trade locally!';
@@ -1231,29 +1397,37 @@ function renderProfile() {
   const done = completedTrades();
   const lv = traderLevel(done);
   const goalItems = Math.min(mine.length, 5);
+  const CAM_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
   $('#profileContent').innerHTML = `
     <div class="profile-card">
-      <span class="avatar lg">${ME.initials}</span>
-      <div style="flex:1">
-        <h1>${ME.name}</h1>
-        <div class="handle">${ME.handle}</div>
-        <div class="profile-meta"><span><span class="material-symbols-outlined icon-inline">location_on</span> ${ME.location}</span><span>Member since ${ME.since}</span></div>
+      <div class="profile-cover" style="background:${bannerCSS(ME.banner)}"></div>
+      <div class="profile-main">
+        <div class="profile-avatar-wrap">${myAvatarHTML('xl')}<button class="cam-badge" id="profilePhotoBtn" aria-label="Edit profile photo">${CAM_SVG}</button></div>
+        <h1>${esc(ME.name)}</h1>
+        <div class="handle">${esc(ME.handle)} · ${esc(ME.location)}</div>
+        <div class="profile-meta"><span>Member since ${esc(ME.since)}</span></div>
         <div class="stats">
           <div class="stat"><b><span class="material-symbols-outlined icon-star">star</span> ${ME.rating}</b><span>Rating</span></div>
           <div class="stat"><b>${ME.trades}</b><span>Trades</span></div>
           <div class="stat"><b>${mine.length}</b><span>Items</span></div>
         </div>
-        <p class="bio" style="margin-top:12px">${ME.bio}</p>
-        <div style="margin-top:16px;display:flex;gap:10px"><button class="btn btn-outline" id="editProfileBtn" style="flex:1">Edit profile</button><button class="btn btn-outline" id="signOutBtn" style="flex:1">Sign out</button></div>
+        <p class="bio" style="margin-top:12px">${esc(ME.bio)}</p>
+        <button class="btn btn-outline" id="editProfileBtn" style="width:100%;margin-top:16px">Edit profile</button>
       </div>
     </div>
-    <div class="section-head"><h2>Interested in</h2></div>
-    ${interestTagsHTML()}
-    <p class="muted interests-hint" style="margin-bottom:20px">These tune your feed \u2014 and help nearby traders find you.</p>
+    <div class="section-head"><h2>Interested in</h2><button class="btn btn-outline btn-sm" id="interestsManageBtn">${interestsEditing ? 'Done' : 'Manage'}</button></div>
+    ${interestTagsHTML(interestsEditing)}
+    ${interestsEditing ? `<div class="interest-addrow"><input id="interestAddInput" type="text" placeholder="Add more — start typing…" maxlength="30" autocomplete="off"><div class="tag-dd hidden" id="tagDD"></div></div>` : ''}
+    <p class="muted interests-hint" style="margin-bottom:20px">These tune your feed — and help nearby traders find you.</p>
     <div class="level-card"><div class="level-top"><b>Level ${lv.cur.n} · ${lv.cur.name}</b><span class="lvl-pill">LV ${lv.cur.n}</span></div><div class="progress"><i style="width:${lv.pct}%"></i></div><p class="muted">${lv.next ? `${lv.next.at - done} more trade${lv.next.at - done === 1 ? '' : 's'} to reach <b>Level ${lv.next.n} · ${lv.next.name}</b>` : 'Max level — local legend status.'}</p></div>
     <div class="goal-card"><h2>Goals</h2>
       <div class="goal-row"><div class="gr-top"><b>List 5 items</b><span>${goalItems} of 5</span></div><div class="progress sm"><i style="width:${goalItems / 5 * 100}%"></i></div></div>
       <div class="goal-row"><div class="gr-top"><b>50 trades in October</b><span>${done} so far · nearby traders</span></div><div class="progress sm"><i class="goal" style="width:${Math.min(100, done / 50 * 100)}%"></i></div></div>
+    </div>
+    <div class="section-head"><h2>Account</h2></div>
+    <div class="card account-card">
+      <button class="acct-row" id="changePwBtn"><span>Change password</span><span class="acct-chev">›</span></button>
+      <button class="acct-row danger" id="signOutBtn"><span>Sign out</span></button>
     </div>
     <div class="section-head"><h2>My Items</h2><button class="btn btn-dark" data-nav="add"><span class="material-symbols-outlined icon-inline">add</span> Add New Item</button></div>
     <div class="grid">${mine.map(cardHTML).join('') || '<p class="empty">No items yet — list your first one!</p>'}</div>
@@ -1280,9 +1454,13 @@ function renderProfile() {
     toast('Signed out.');
     nav('auth');
   });
+  const cpw = $('#changePwBtn');
+  if (cpw) cpw.addEventListener('click', openPasswordModal);
+  const ppb = $('#profilePhotoBtn');
+  if (ppb) ppb.addEventListener('click', openProfileEditor);
   $$('#profileContent .card[data-id]').forEach(c => c.addEventListener('click', () => openDetail(+c.dataset.id)));
   bindSaveButtons();
-  bindInterestTags($('#profileContent'));
+  bindInterestSection();
   const epb = $('#editProfileBtn');
   if (epb) epb.addEventListener('click', openProfileEditor);
 }
