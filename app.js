@@ -825,10 +825,6 @@ function renderStrip() {
 let bmSelected = 'ocean';
 function openBannerModal() {
   bmSelected = pendingBanner || 'ocean';
-  $('#bmName').textContent = $('#pfName').value.trim() || ME.name;
-  $('#bmHandle').textContent = ($('#pfHandle').value.trim() || ME.handle) + ' \u00b7 ' + ME.location;
-  const mine = state.items.filter(i => i.owner === ME.name).length;
-  $('#bmStats').innerHTML = `<span><b>\u2605 ${ME.rating}</b> Rating</span><span><b>${ME.trades}</b> Trades</span><span><b>${mine}</b> Items</span>`;
   const src = pendingAvatar || ME.avatar;
   $('#bmAvatar').innerHTML = src
     ? `<img class="mini-avatar avatar-photo" src="${src}" alt="">`
@@ -838,11 +834,10 @@ function openBannerModal() {
 }
 function renderBmSwatches() {
   $('#bmCover').style.background = bannerCSS(bmSelected);
-  $('#bmColorName').textContent = bannerName(bmSelected);
   $('#bmApply').textContent = 'Use ' + bannerName(bmSelected).toLowerCase();
   const box = $('#bmSwatches');
   box.innerHTML = Object.keys(BANNERS).map(k =>
-    `<button type="button" class="swatch ${bmSelected === k ? 'on' : ''}" data-banner="${k}" style="background:${bannerCSS(k)}" aria-label="${bannerName(k)}"></button>`).join('');
+    `<button type="button" class="swatch ${bmSelected === k ? 'on' : ''}" data-banner="${k}" aria-label="${bannerName(k)}"><span class="sw-circle" style="background:${bannerCSS(k)}"></span><span class="sw-name">${bannerName(k)}</span></button>`).join('');
   box.querySelectorAll('.swatch').forEach(b => b.addEventListener('click', () => {
     bmSelected = b.dataset.banner;
     renderBmSwatches();
