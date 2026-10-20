@@ -94,6 +94,7 @@ let currentRadius = 0; // 0 = any distance
 let activeTab = 'received';
 let activeConvo = null;
 let currentFolder = 'inbox';
+let msgSearch = '', msgUnreadOnly = false;
 let tradeTargetId = null;
 let tradeSelectedMine = null;
 
@@ -1000,33 +1001,97 @@ function openConversationWith(owner, itemId) {
   currentFolder = c.folder;
   nav('messages');
 }
-function renderMessages() {
-  updateMsgBadge();
-  const layout = $('.messages-layout');
-  if (layout) layout.classList.toggle('thread-open', activeConvo !== null);
-  // Folder sidebar (Inbox / Sent / Unread / Trash). Blocked users hidden.
+const MSG_SEARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+// Find a live offer tied to this conversation (either direction, either side's item).
+function liveOfferFor(convo) {
+  return state.offers.find(o =>
+    (o.status === 'Pending' || o.status === 'Awaiting confirmation') &&
+    (o.myItemId === convo.itemId || o.theirItemId === convo.itemId) &&
+    !state.blocked.includes(convo.with) &&
+    (o.direction === 'received' ? o.from === convo.with
+      : ((itemById(o.theirItemId) || {}).owner === convo.with)));
+}
+function offerFairPill(o, mine, theirs) {
+  let myP = null, theirP = null;
+  if (o.type === 'cash') {
+    const itemP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+    if (o.direction === 'received') { myP = itemP; theirP = +o.cashAmount; }
+    else { myP = +o.cashAmount; theirP = itemP; }
+  } else {
+    myP = mine && mine.cashPrice ? +mine.cashPrice : null;
+    theirP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+  }
+  if (!myP || !theirP) return '';
+  const ok = Math.max(myP, theirP) / Math.min(myP, theirP) <= 3;
+  return `<span class="offer-fair ${ok ? 'ok' : 'warn'}">${ok ? '✓' : '!'} $${moneyFmt(theirP)} ⇄ $${moneyFmt(myP)} · ${ok ? 'fair trade' : 'far apart'}</span>`;
+}
+// Take B: offer banner with item pictures, deep-linking to the trade window.
+function offerBannerHTML(convo) {
+  const o = liveOfferFor(convo);
+  if (!o) return '';
+  const theirs = itemById(o.theirItemId);
+  const mine = itemById(o.myItemId);
+  const theirCash = o.type === 'cash' && o.direction === 'received';
+  const myCash = o.type === 'cash' && o.direction === 'sent';
+  const theirTitle = theirCash ? `$${moneyFmt(o.cashAmount)} cash` : (theirs ? theirs.title : 'Item removed');
+  const myTitle = myCash ? `$${moneyFmt(o.cashAmount)} cash` : (mine ? mine.title : 'Item removed');
+  const photo = (item, isCash) => isCash
+    ? `<div class="offer-cash"><span>$</span></div>`
+    : (item && item.image ? `<img src="${esc(item.image)}" alt="" data-item="${item.id}">` : `<div class="offer-cash"><span>?</span></div>`);
+  const kicker = o.status === 'Pending' ? 'Offer pending' : 'Awaiting confirmation';
+  const sub = o.direction === 'received'
+    ? `${esc(o.from)} offers ${esc(theirTitle)} for your ${esc(myTitle)}.`
+    : `You offered ${esc(myTitle)} for ${esc(convo.with)}'s ${esc(theirTitle)}.`;
+  return `<div class="offer-banner">
+    <div class="offer-kicker">${kicker}</div>
+    <div class="offer-duel">
+      <div class="offer-photos">${photo(theirs, theirCash)}<span class="oswap">⇄</span>${photo(mine, myCash)}</div>
+      <div><div class="offer-title">${esc(theirTitle)} ⇄ ${esc(myTitle)}</div><div class="offer-sub">${sub}</div></div>
+    </div>
+    ${offerFairPill(o, mine, theirs)}
+    <button class="offer-review" data-offer="${o.id}">Review offer</button>
+  </div>`;
+}
+function renderMsgControls() {
   const visibleConvos = state.conversations.filter(c => !state.blocked.includes(c.with));
   const inboxN = visibleConvos.filter(c => c.folder === 'inbox').length;
   const sentN = visibleConvos.filter(c => c.folder === 'sent').length;
-  const unreadN = visibleConvos.filter(c => c.folder === 'inbox' && c.unread).length;
-  const trashN = visibleConvos.filter(c => c.folder === 'trash').length;
-  const folders = [
-    ['inbox', 'Inbox', inboxN], ['sent', 'Sent', sentN],
-    ['unread', 'Unread', unreadN], ['trash', 'Trash', trashN],
-  ];
-  $('#folderList').innerHTML = folders.map(([key, label, n]) =>
-    `<button class="folder ${currentFolder === key ? 'active' : ''}" data-folder="${key}"><span>${label}</span><span class="folder-count">${n}</span></button>`).join('');
-  $$('#folderList .folder').forEach(f => f.addEventListener('click', () => {
-    currentFolder = f.dataset.folder;
-    activeConvo = null;
-    renderMessages();
+  const unreadN = visibleConvos.filter(c => c.unread && c.folder !== 'trash').length;
+  const inTrash = currentFolder === 'trash';
+  const box = $('#msgControls');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="msg-search">${MSG_SEARCH_SVG}<input id="msgSearchInput" placeholder="Search conversations" value="${esc(msgSearch)}" autocomplete="off" aria-label="Search conversations"></div>
+    ${inTrash ? '' : `<div class="msg-filterrow">
+      <div class="msg-seg">
+        <button class="${currentFolder === 'inbox' ? 'on' : ''}" data-mfolder="inbox">Inbox · ${inboxN}</button>
+        <button class="${currentFolder === 'sent' ? 'on' : ''}" data-mfolder="sent">Sent · ${sentN}</button>
+      </div>
+      <button class="msg-unread-chip ${msgUnreadOnly ? 'on' : ''}" id="msgUnreadChip"><span class="udot"></span>Unread${unreadN ? ` · ${unreadN}` : ''}</button>
+    </div>`}`;
+  const si = $('#msgSearchInput');
+  if (si) si.addEventListener('input', () => { msgSearch = si.value; renderConvoList(); });
+  $$('#msgControls [data-mfolder]').forEach(b => b.addEventListener('click', () => {
+    currentFolder = b.dataset.mfolder; activeConvo = null; renderMessages();
   }));
-  const visible = visibleConvos.filter(c =>
-    currentFolder === 'inbox' ? c.folder === 'inbox' :
-    currentFolder === 'sent' ? c.folder === 'sent' :
-    currentFolder === 'unread' ? (c.folder === 'inbox' && c.unread) :
-    c.folder === 'trash');
-  $('#conversationList').innerHTML = visible.length ? visible.map(c => {
+  const chip = $('#msgUnreadChip');
+  if (chip) chip.addEventListener('click', () => { msgUnreadOnly = !msgUnreadOnly; activeConvo = null; renderMessages(); });
+}
+function renderConvoList() {
+  const visibleConvos = state.conversations.filter(c => !state.blocked.includes(c.with));
+  const trashN = visibleConvos.filter(c => c.folder === 'trash').length;
+  const inTrash = currentFolder === 'trash';
+  let list = visibleConvos.filter(c => c.folder === currentFolder);
+  if (msgUnreadOnly) list = list.filter(c => c.unread);
+  const q = msgSearch.trim().toLowerCase();
+  if (q) list = list.filter(c => {
+    const item = itemById(c.itemId);
+    return c.with.toLowerCase().includes(q) ||
+      (item && item.title.toLowerCase().includes(q)) ||
+      c.messages.some(m => m.text.toLowerCase().includes(q));
+  });
+  list = [...list].sort((a, b) => (b.unread || 0) - (a.unread || 0));
+  $('#conversationList').innerHTML = (list.length ? list.map(c => {
     const last = c.messages[c.messages.length - 1];
     const item = itemById(c.itemId);
     return `<div class="convo ${activeConvo === c.id ? 'active' : ''} ${c.unread ? 'unread' : ''}" data-id="${c.id}">
@@ -1034,17 +1099,30 @@ function renderMessages() {
       <div class="convo-text">
         <div class="convo-top"><span class="convo-name">${esc(c.with)}</span><span class="convo-time">${last ? esc(last.time) : ''}</span></div>
         ${item ? `<div class="convo-item-title">${esc(item.title)}</div>` : ''}
-        <div class="convo-preview">${esc(last ? last.text : '')}</div>
+        <div class="convo-preview">${esc(last ? last.text : 'No messages yet')}</div>
       </div>
       ${c.unread ? `<span class="unread-badge">${c.unread}</span>` : ''}
     </div>`;
-  }).join('') : `<p class="empty">Nothing in ${currentFolder}.</p>`;
+  }).join('') : `<p class="empty">${q ? `No conversations match “${esc(msgSearch.trim())}”.` : inTrash ? 'Trash is empty.' : `Nothing in ${currentFolder}.`}</p>`)
+  + (inTrash
+    ? `<button class="trash-link" id="trashBack">← Back to Inbox</button>`
+    : `<button class="trash-link" id="trashOpen">Trash · ${trashN}</button>`);
+  const tb = $('#trashBack');
+  if (tb) tb.addEventListener('click', () => { currentFolder = 'inbox'; activeConvo = null; renderMessages(); });
+  const to = $('#trashOpen');
+  if (to) to.addEventListener('click', () => { currentFolder = 'trash'; activeConvo = null; renderMessages(); });
   $$('#conversationList .convo').forEach(cv => cv.addEventListener('click', () => {
     activeConvo = +cv.dataset.id;
     const c = state.conversations.find(x => x.id === activeConvo);
     if (c && c.unread && c.folder !== 'trash') { c.unread = 0; save(); }
     renderMessages();
   }));
+}
+function renderMessages() {
+  updateMsgBadge();
+  $('#view-messages').classList.toggle('thread-open', activeConvo !== null);
+  renderMsgControls();
+  renderConvoList();
   const convo = state.conversations.find(c => c.id === activeConvo);
   if (!convo) { $('#threadView').innerHTML = '<p class="empty">Select a conversation to start messaging.</p>'; return; }
   const item = itemById(convo.itemId);
@@ -1056,22 +1134,26 @@ function renderMessages() {
       <span class="bubble-time">${esc(m.time)}</span>
     </div>`;
   }).join('');
+  const banner = offerBannerHTML(convo);
   $('#threadView').innerHTML = `
     <div class="thread-head">
       <button class="thread-back" id="threadBack"><span class="material-symbols-outlined">arrow_back</span></button>
       <span class="avatar">${esc(convo.initials)}</span>
       <div class="thread-who"><div class="convo-name">${esc(convo.with)}</div><div class="thread-sub">${item ? `About “${esc(item.title)}”` : 'Direct message'}</div></div>
-      <div class="thread-actions">
-        ${inTrash
-          ? `<button class="thread-action" id="restoreBtn">Restore</button><button class="thread-action danger" id="deleteForeverBtn">Delete forever</button>`
-          : `<button class="thread-action" id="markUnreadBtn">Mark unread</button><button class="thread-action" id="trashBtn">Delete</button><button class="thread-action" id="blockThreadBtn">Block</button>`}
+      <div class="kebab-wrap">
+        <button class="kebab-btn" id="kebabBtn" aria-label="Conversation actions">•••</button>
+        <div class="kebab-menu hidden" id="kebabMenu">
+          ${inTrash
+            ? `<button id="restoreBtn">Restore</button><button id="deleteForeverBtn" class="danger">Delete forever</button>`
+            : `<button id="markUnreadBtn">Mark unread</button><button id="trashBtn">Delete</button><button id="blockThreadBtn" class="danger">Block</button>`}
+        </div>
       </div>
     </div>
-    ${item ? `<div class="thread-item-card" data-item="${item.id}">
+    ${banner || (item ? `<div class="thread-item-card" data-item="${item.id}">
       <img src="${esc(item.image)}" alt="">
       <div><div class="mi-title">${esc(item.title)}</div><div class="mi-sub">${esc(item.condition)} · Listed ${esc(item.listed)}</div></div>
       <span class="view-item-link">View item <span class="material-symbols-outlined icon-inline">arrow_forward</span></span>
-    </div>` : ''}
+    </div>` : '')}
     <div class="thread-msgs" id="threadMsgs">
       <div class="date-divider"><span>Today</span></div>
       ${bubblesHTML}
@@ -1081,6 +1163,18 @@ function renderMessages() {
       : `<form class="thread-input" id="msgForm"><input id="msgInput" placeholder="Type a message..." autocomplete="off"><button type="submit">Send</button></form>`}`;
   const backBtn = $('#threadBack');
   if (backBtn) backBtn.addEventListener('click', () => { activeConvo = null; renderMessages(); });
+  const kebabBtn = $('#kebabBtn'), kebabMenu = $('#kebabMenu');
+  if (kebabBtn && kebabMenu) {
+    kebabBtn.addEventListener('click', e => { e.stopPropagation(); kebabMenu.classList.toggle('hidden'); });
+    $('#threadView').addEventListener('click', e => {
+      if (!kebabMenu.classList.contains('hidden') && !e.target.closest('.kebab-wrap')) kebabMenu.classList.add('hidden');
+    });
+  }
+  const reviewBtn = $('#threadView .offer-review');
+  if (reviewBtn) reviewBtn.addEventListener('click', () => openTradeWindow(+reviewBtn.dataset.offer));
+  $$('#threadView .offer-photos [data-item]').forEach(el => el.addEventListener('click', e => {
+    e.stopPropagation(); openDetail(+el.dataset.item);
+  }));
   const markUnread = $('#markUnreadBtn');
   if (markUnread) markUnread.addEventListener('click', () => {
     convo.unread = 1; convo.folder = 'inbox'; save();
