@@ -1023,20 +1023,42 @@ function renderTrades() {
   $('#offersList').innerHTML = list.length ? list.map(offerHTML).join('') : `<p class="empty">No ${activeTab} offers yet.</p>`;
   $$('#offersList .offer-card').forEach(card => card.addEventListener('click', () => openTradeWindow(+card.dataset.id)));
 }
+// Short fairness pill for list cards (captions already carry the prices).
+function fairPillShort(o, mine, theirs) {
+  let myP = null, theirP = null;
+  if (o.type === 'cash') {
+    const itemP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+    if (o.direction === 'received') { myP = itemP; theirP = +o.cashAmount; }
+    else { myP = +o.cashAmount; theirP = itemP; }
+  } else {
+    myP = mine && mine.cashPrice ? +mine.cashPrice : null;
+    theirP = theirs && theirs.cashPrice ? +theirs.cashPrice : null;
+  }
+  if (!myP || !theirP) return '';
+  const ok = Math.max(myP, theirP) / Math.min(myP, theirP) <= 3;
+  return `<span class="offer-fair ${ok ? 'ok' : 'warn'}">${ok ? '\u2713 Fair trade' : '! Values far apart'}</span>`;
+}
 function offerHTML(o) {
   const theirs = itemById(o.theirItemId);
   const mine = itemById(o.myItemId);
-  const sides = o.type === 'cash'
-    ? `<div class="trade-sides"><div><div class="side-label">Cash offer</div><div class="mini-item"><div><div class="mi-title">$${esc(o.cashAmount)} cash</div><div class="mi-sub">For ${theirs ? esc(theirs.title) : 'item'}</div></div></div></div></div>`
-    : `<div class="trade-sides">
-      <div><div class="side-label">They offer</div><div class="mini-item"><img src="${theirs ? esc(theirs.image) : ''}"><div><div class="mi-title">${theirs ? esc(theirs.title) : 'Item removed'}</div><div class="mi-sub">${theirs ? esc(theirs.condition) : ''}</div></div></div></div>
-      <div><div class="side-label">For your item</div><div class="mini-item"><img src="${mine ? esc(mine.image) : ''}"><div><div class="mi-title">${mine ? esc(mine.title) : 'Item removed'}</div><div class="mi-sub">${mine ? esc(mine.condition) : ''}</div></div></div></div>
-    </div>`;
-  return `<div class="offer-card" data-id="${o.id}">
-    <div class="offer-top"><span class="offer-from">${o.direction === 'received' ? 'From ' + esc(o.from) : 'To ' + esc(theirs ? theirs.owner : '')}</span>
-    <span><span class="status ${statusClass(o.status)}">${esc(o.status)}</span> <span class="offer-date">${esc(o.date)}</span></span></div>
-    ${sides}
-    <p class="offer-msg">${esc(o.message)}</p><p class="offer-tap-hint">Tap to review this trade <span class="material-symbols-outlined icon-inline">arrow_forward</span></p></div>`;
+  const person = o.direction === 'received' ? o.from : (theirs ? theirs.owner : '');
+  const live = o.status === 'Pending' || o.status === 'Awaiting confirmation';
+  const figFor = item => item
+    ? `<figure class="a4-fig"><img src="${esc(item.image)}" alt=""><figcaption><div class="a4-cap">${esc(item.title)}</div><div class="a4-sub">${esc(item.condition)}${item.cashPrice ? ' \u00b7 $' + moneyFmt(item.cashPrice) : ''}</div></figcaption></figure>`
+    : `<figure class="a4-fig"><div class="a4-nophoto"></div><figcaption><div class="a4-cap">Item removed</div><div class="a4-sub"></div></figcaption></figure>`;
+  const cashFig = `<figure class="a4-fig"><div class="a4-cash">$${moneyFmt(o.cashAmount)}</div><figcaption><div class="a4-cap">${o.direction === 'received' ? 'Their cash offer' : 'Your cash offer'}</div><div class="a4-sub">Cash</div></figcaption></figure>`;
+  // Left = what the offerer gives, right = what they get.
+  let left, right;
+  if (o.type === 'cash') { left = cashFig; right = figFor(theirs); }
+  else if (o.direction === 'received') { left = figFor(theirs); right = figFor(mine); }
+  else { left = figFor(mine); right = figFor(theirs); }
+  return `<div class="offer-card a4" data-id="${o.id}">
+    <div class="a4-head"><span class="avatar md">${esc(initialsOf(person))}</span>
+      <span class="a4-who"><span class="a4-name">${esc(person)}</span><span class="a4-date">${esc(o.date)}</span></span></div>
+    <div class="a4-pills"><span class="status ${statusClass(o.status)}">${esc(o.status)}</span>${live ? fairPillShort(o, mine, theirs) : ''}</div>
+    <div class="a4-pair">${left}<span class="a4-swap">\u21c4</span>${right}</div>
+    ${o.message ? `<p class="a4-note"><span>${o.direction === 'received' ? 'Note:' : 'Your note:'}</span> \u201c${esc(o.message)}\u201d</p>` : ''}
+  </div>`;
 }
 // ---------- TRADE WINDOW (hybrid restyle) ----------
 const moneyFmt = n => { const v = +n; return Number.isInteger(v) ? String(v) : v.toFixed(2); };
