@@ -626,30 +626,41 @@ function cardHTML(i) {
 function openDetail(id) {
   const i = itemById(id);
   const mine = i.owner === ME.name;
+  const listedDate = new Date(i.listed);
+  const listedShort = isNaN(listedDate) ? i.listed : listedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const ownerCount = state.items.filter(x => x.owner === i.owner && !x.traded).length;
+  const chips = [
+    `<span class="dchip">Condition \u00b7 <b>${esc(i.condition)}</b></span>`,
+    `<span class="dchip">${esc(i.category)}</span>`,
+    i.cashPrice ? `<span class="dchip"><b>$${moneyFmt(i.cashPrice)}</b>&nbsp;cash value</span>` : '',
+    (!mine && i.distance) ? `<span class="dchip">${esc(i.distance)} mi away</span>` : '',
+    `<span class="dchip">Listed ${esc(listedShort)}</span>`,
+  ].join('');
   $('#detailContent').innerHTML = `
     <button class="save-btn detail-save ${isSaved(i.id) ? 'saved' : ''}" data-save="${i.id}" aria-label="Save item"><span class="material-symbols-outlined">bookmark</span></button>
     <img class="detail-img" src="${esc(i.image)}" alt="${esc(i.title)}">
-    <div class="detail-head"><h1>${esc(i.title)}</h1><span class="badge">${i.traded ? 'Traded' : esc(i.condition)}</span></div>
+    <div class="detail-head"><h1>${esc(i.title)}</h1>${i.traded ? '<span class="badge">Traded</span>' : ''}</div>
+    ${mine && !i.traded ? '<span class="owntag">Your listing</span>' : ''}
+    <div class="detail-chips">${chips}</div>
     <p class="detail-desc">${esc(i.desc)}</p>
-    <p class="detail-meta">Category: ${esc(i.category)} &nbsp;·&nbsp; Listed ${esc(i.listed)}${i.distance == null ? '' : (i.distance === 0 ? ' &nbsp;·&nbsp; Your listing' : ' &nbsp;·&nbsp; ' + esc(i.distance) + ' mi away')}</p>
     <div class="owner-card">
       <span class="avatar lg">${esc(i.ownerInitials)}</span>
       <div class="owner-meta">
         <div class="owner-name">${esc(i.owner)}</div>
         <div class="owner-loc"><span class="material-symbols-outlined icon-inline">location_on</span> ${esc(i.ownerLoc)}</div>
-        <div class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating} · ${i.owner === ME.name ? state.items.filter(x => x.owner === ME.name).length : '—'} items</div>
+        <div class="rating"><span class="material-symbols-outlined icon-star">star</span>${i.ownerRating}${mine ? ' \u00b7 ' + ME.trades + ' trades' : ''} \u00b7 ${ownerCount} item${ownerCount === 1 ? '' : 's'}</div>
       </div>
     </div>
     ${i.traded
       ? `<p class="muted">This item has been traded.</p>`
       : mine
-      ? `<p class="muted">This is your item.</p>`
-      : `<button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
-      <button class="btn btn-outline" id="messageBtn" style="margin-top:8px">Message ${esc(i.owner.split(' ')[0])}</button>
-      ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn" style="margin-top:8px">Offer $${esc(i.cashPrice)} cash</button>
-      <div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p><p class="promise-small">A 5% TradeHub fee applies to cash payments. Arrange payment directly with ${esc(i.owner)}.</p>
-      <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}`}`;
-  const detailActions = `<div class="detail-actions"><button class="text-btn" id="reportListingBtn">Report listing</button>${mine ? '' : `<button class="text-btn" id="blockUserBtn">Block ${esc(i.owner)}</button>`}</div>
+      ? ''
+      : `<div class="detail-stack"><button class="btn btn-primary" id="proposeBtn">Propose Trade</button>
+      <div class="detail-stack-row"><button class="btn btn-outline" id="messageBtn">Message ${esc(i.owner.split(' ')[0])}</button>
+      ${i.cashPrice ? `<button class="btn btn-outline" id="cashOfferBtn">Cash Offer</button>` : ''}</div>
+      ${i.cashPrice ? `<div id="cashConfirm" class="cash-confirm hidden"><p>Send a cash offer of $${esc(i.cashPrice)} to ${esc(i.owner)}?</p><p class="promise-small">A 5% TradeHub fee applies to cash payments. Arrange payment directly with ${esc(i.owner)}.</p>
+      <div class="form-actions"><button class="btn btn-ghost" id="cashCancel">Cancel</button><button class="btn btn-primary" id="cashSend">Send Offer</button></div></div>` : ''}</div>`}`;
+  const detailActions = mine ? '' : `<div class="detail-actions"><button class="text-btn" id="reportListingBtn">Report listing</button><button class="text-btn" id="blockUserBtn">Block ${esc(i.owner)}</button></div>
   <div id="blockConfirm" class="cash-confirm hidden"><p>Block ${esc(i.owner)}? You won't see their listings, offers, or messages.</p><div class="form-actions"><button class="btn btn-ghost" id="blockCancel">Cancel</button><button class="btn btn-primary" id="blockConfirmBtn">Block</button></div></div>`;
   $('#detailContent').insertAdjacentHTML('beforeend', detailActions);
   const reportBtn = $('#reportListingBtn');
